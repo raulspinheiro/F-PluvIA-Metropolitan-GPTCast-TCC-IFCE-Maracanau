@@ -1,66 +1,91 @@
-# F-PluvIA Metropolitan: Nowcasting de Precipitação na Região Metropolitana de Fortaleza com Modelo GPTCast-8x8 e Benchmark Interinstitucional
+# F-PluvIA Metropolitan: Previsão Imediata (*Nowcasting*) de Precipitação na Região Metropolitana de Fortaleza com Modelo GPTCast-8x8 e Benchmark Interinstitucional
 
-Repositório oficial de código, experimentos e artefatos de dados do **Trabalho de Conclusão de Curso (TCC)** — desenvolvido no formato de **artigo científico** — vinculado ao Bacharelado em Ciência da Computação do Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE), Campus Maracanaú, sob o título: *"F-PluvIA Metropolitan: Previsão Imediata de Precipitação Severa na Região Metropolitana de Fortaleza Utilizando o Modelo Autorregressivo GPTCast-8x8 e Validação Cruzada Interinstitucional"*.
+Repositório oficial dos artefatos de software, pipeline experimental de treinamento/inferência em GPU e certificação de proveniência científica do Trabalho de Conclusão de Curso (TCC), concebido no formato de **Artigo Científico**, apresentado ao Curso de Bacharelado em Ciência da Computação do **Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE) — Campus Maracanaú** (Semestre Letivo `2026.2`).
 
----
-
-## Identificação Institucional e Acadêmica
-
-* **Instituição de Ensino:** Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE)
-* **Campus:** Campus Maracanaú
-* **Curso:** Bacharelado em Ciência da Computação
-* **Formato do Trabalho:** Trabalho de Conclusão de Curso (TCC) / Artigo Científico
-* **Semestre Letivo:** 2026.2
-* **Autor:** Raul Santiago Pinheiro — [Currículo Lattes](https://lattes.cnpq.br/8378024959016497)
-* **Orientador:** Prof. Dr. [Amauri Holanda de Souza Júnior] — [Currículo Lattes](http://lattes.cnpq.br/2629504708221802)
-* **Área de Concentração:** Inteligência Artificial Aplicada / Visão Computacional / Recursos Hídricos
+* **Autor:** Raul Santiago Pinheiro
+* **Instituição:** IFCE — Campus Maracanaú (`2026.2`)
+* **Orientação Acadêmica:** [Currículo Lattes CNPq](http://lattes.cnpq.br/2629504708221802)
+* **Repositório Oficial:** [https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau](https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau)
 
 ---
 
-## Visão Geral do Projeto
+## 1. Visão Geral do Projeto
 
-O **F-PluvIA Metropolitan** investiga o desempenho da inteligência artificial generativa aplicada à previsão meteorológica de curtíssimo prazo (*nowcasting*, horizontes de $+30$, $+60$, $+90$ e $+120\text{ min}$) sobre os 19 municípios da Região Metropolitana de Fortaleza (RMF). O núcleo do sistema baseia-se no ajuste fino (*fine-tuning*) do modelo **GPTCast-8x8**, uma arquitetura híbrida de dois estágios composta por:
+O sistema **F-PluvIA Metropolitan** investiga a adaptação de domínio regional (*fine-tuning*) do modelo fundacional autorregressivo **GPTCast-8x8** (arquitetura híbrida composta por um *Tokenizer* Espacial **VQGAN** congelado de $90{,}71\text{ M}$ de parâmetros com *codebook* discreto de $1.024\text{ códigos}$ em grade latente $8 \times 8$, acoplado a um **Transformer Causal GPT-2** de $304{,}93\text{ M}$ de parâmetros) para a previsão imediata de precipitação severa (*nowcasting* de $+30\text{ min}$ a $+120\text{ min}$) sobre os 19 municípios da **Região Metropolitana de Fortaleza (RMF)**.
 
-1. **Autoencoder Espacial (VQGAN — 90,71 M parâmetros):** Codificador convolucional e livro de códigos discreto (*codebook* de 1.024 tokens) que reduz cada quadro de refletividade/chuva ($128 \times 128\text{ pixels}$) para uma grade latente compacta de $8 \times 8\text{ tokens}$ (onde cada token quantiza uma área física de $16 \times 16\text{ km}$). Mantido congelado durante a adaptação local.
-2. **Transformer Temporal (GPT-2 — 304,93 M parâmetros):** Rede autorregressiva com atenção causal treinada para modelar a advecção, crescimento e dissipação das células convectivas tropicais ao longo de 512 tokens espaciotemporais ($8\text{ quadros} \times 64\text{ tokens}$).
-
-O projeto confronta o modelo ajustado contra baselines eulerianos e lagrangianos clássicos, bem como contra a modelagem física e redes de sensores das principais instituições meteorológicas e de monitoramento do Brasil e do Ceará.
+O estudo estabelece um protocolo experimental plurianual ($2019\text{–}2025$, $28\text{ meses}$ das quadras chuvosas de fevereiro a maio) utilizando estimativas de satélite **NASA GPM IMERG-FR v7** reamostradas para resolução espacial de $2\text{ km}$ ($128 \times 128\text{ pixels}$, cobrindo $256 \times 256\text{ km}$), avaliando a transferência de aprendizado em precisão mista `BF16` e realizando um benchmark interinstitucional e computacional em ambiente **Google Colab Pro+** (**NVIDIA RTX 6000 Blackwell / G4 — 95 GB GDDR7** vs. **NVIDIA H100 Hopper — 80 GB HBM3**).
 
 ---
 
-## Destaques Metodológicos e Estrutura de Dados
+## 2. Organização do Repositório
 
-* **Série Plurianual e Domínio Cartográfico:** 28 meses de dados históricos de satélite em alta resolução (**GPM IMERG-FR v7**), interpolados bicubicamente para uma grade métrica contínua de **$2\text{ km}$ ($128 \times 128\text{ pixels}$ / $256 \times 256\text{ km}$)** com pré-alocação contígua em RAM (*Zero-Copy*).
-* **Particionamento Temporal Estrito (Anti-Data Leakage):**
-  * **Treinamento (2019–2023):** 20 meses de quadras chuvosas locais (fevereiro a maio) utilizados no ajuste do Transformer em precisão mista `BF16`.
-  * **Validação (2024):** 4 meses completos (incluindo o estudo de caso severo de 18/03/2024) com critério de parada antecipada (*Early Stopping*) ancorado na perda latente (`val/loss = 4.822`).
-  * **Teste Científico Fora da Amostra (2025):** 4 meses independentes do IMERG-FR (1.729 sequências temporais) para verificação estatística cega.
-* **Avaliação Multidimensional:**
-  * **Métricas Físicas e Contínuas:** MAE, RMSE, SSIM e Correlação de Pearson (PCC).
-  * **Métricas de Classificação e Decisão (F-PluvIA):** Acurácia Global, Precisão (PPV), Recall/Sensibilidade (POD), F1-Score, Taxa de Falso Alarme (FAR) e Índice de Sucesso Crítico (CSI / IoU) avaliados nos limiares operacionais de $0{,}5\text{ mm/h}$ (fraca), $1{,}0\text{ mm/h}$ (moderada) e $5{,}0\text{ mm/h}$ (severa).
-  * **Verificação Espacial e Espectral Avançada:** Densidade Espectral de Potência Radialmente Mediada (**RAPSD**) na escala de Nyquist ($4\text{ km}$), Decomposição Tridimensional do Erro (**Diagrama SAL** — Estrutura, Amplitude, Localização e deslocamento do baricentro em km) e **Fractions Skill Score (FSS)** avaliado em escala municipal multirresolução ($2\text{ km}$ a $34\text{ km}$, com foco na transição pós-token em $18\text{ km}$).
-* **Framework de Benchmark Interinstitucional:**
-  * **Modelos Físicos e Baselines:** Persistência Euleriana, GPTCast-8x8 Zero-Shot, Fluxo Óptico de Lucas-Kanade (`pysteps`) e LINDA (*Lagrangian Integro-Difference Autoregression* — Pulkkinen et al., 2021).
-  * **Fontes Institucionais Confrontadas:** DECEA (Radar Doppler Banda-S Eusébio/REDEMET), FUNCEME (WRF Regional 5 km), INPE/CPTEC (Hidroestimador GOES-16 ABI IR / BAM), CEMADEN (Rede de PCDs pluviométricas urbanas na RMF), INMET (Estação Sinótica A305 Fortaleza + NWP) e ANA (Telemetria Hidrológica de Bacias).
-* **Rastreabilidade e Hardware:** Pipeline instrumentado para quantificar *speedup*, eficiência de VRAM e consumo de Unidades de Computação (CUs) no Google Colab Pro+ comparando as arquiteturas **NVIDIA RTX 6000 Blackwell (G4 — 95 GB GDDR7)** e **NVIDIA H100 Hopper (80 GB HBM3)**, acompanhado de geração automática de certificados de auditoria digital com hash SHA-256 dos artefatos.
+A estrutura de diretórios foi projetada segundo princípios de reprodutibilidade científica e rastreabilidade forense (`SHA-256`). Todos os diretórios e subdiretórios contam com documentação dedicada (`README.md` / `structure.md`):
+
+```text
+F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau/
+├── README.md                        # Documentação principal e visão geral do projeto (este arquivo)
+├── notebooks/
+│   ├── README.md                    # Guia de execução do pipeline experimental (Células 1 a 13.1 + Extras)
+│   └── Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb
+├── src/
+│   ├── README.md                    # Arquitetura modular em Python e visão geral dos pacotes
+│   ├── adapters/
+│   │   └── README.md                # Padrão GoF Adapter (IMERGToMiaradAdapter e PyStepsAdapter)
+│   ├── metrics/
+│   │   └── README.md                # Módulos de verificação contínua, categórica (CSI) e espacial (SAL, RAPSD, FSS)
+│   └── utils/
+│       └── README.md                # Conversão física Z-R (Marshall-Palmer) e cartografia da RMF (GeoPandas/Cartopy)
+├── results/
+│   ├── README.md                    # Índice geral dos artefatos experimentais e síntese de resultados
+│   ├── figures/
+│   │   └── README.md                # Catálogo dos painéis cartográficos e espectrais a 300 dpi
+│   └── tables/
+│       └── README.md                # Dicionário de dados dos relatórios CSV por horizonte (+30 a +120 min)
+└── docs/
+    ├── structure.md                 # Guia descritivo da estrutura e dos artefatos da pasta docs/
+    ├── references.bib               # Base bibliográfica unificada em formato BibTeX (LaTeX/ABNT)
+    └── provenance/
+        ├── README.md                # Protocolo de auditoria forense e verificação de integridade SHA-256
+        ├── certificado_autoria_*.json # Manifestos criptográficos de hardware e artefatos da sessão Colab Pro+
+        └── certificado_autoria_*.md   # Relatórios legíveis de auditoria com tabelas de hashes SHA-256
+```
 
 ---
-## Organização do Repositório
 
 ![Organização do Repositório](docs/estrutura_repositorio.jpg)
 
+## 3. Desenho Experimental e Particionamento Temporal Estrito
 
-```text
-├── notebooks/
-│   └── Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb   # Pipeline experimental unificado (Células 1 a 13.1)
-├── src/
-│   ├── adapters/          # Implementações do GoF Adapter (IMERGToMiaradAdapter, PyStepsAdapter)
-│   ├── metrics/           # Módulos de cálculo de SAL, RAPSD, FSS e métricas de contingência ML
-│   └── utils/             # Funções de conversão Z-R (Marshall-Palmer) e cartografia GeoPandas/Cartopy
-├── results/
-│   ├── figures/           # Painéis cartográficos a 300 dpi (Mapas RMF, RAPSD, SAL, Curvas FSS)
-│   └── tables/            # Relatórios consolidados em CSV por horizonte (+30 a +120 min) e ambiente
-└── docs/
-    ├── structure.md                # Guia descritivo da estrutura e dos artefatos da pasta docs/
-    ├── references.bib              # Base de referências bibliográficas em formato BibTeX
-    └── provenance/                 # Diretório de auditoria forense da execução em GPU e hashes SHA-256
+Para eliminar vazamento de dados (*data leakage*) e garantir avaliação meteorológica realista sob regimes convectivos tropicais (ZCIT, VCAN e Linhas de Instabilidade):
+
+| Partição | Período (Quadra Chuvosa: Fev–Mai) | Volume Temporal | Finalidade Metodológica |
+| :--- | :---: | :---: | :--- |
+| **Treinamento** | $2019\text{–}2023$ | 20 meses | Ajuste fino (*fine-tuning*) do Transformer GPT-2 em precisão `BF16` com VQGAN congelado |
+| **Validação** | $2024$ | 4 meses | Monitoramento de convergência, *Early Stopping* ($\text{val/loss} = 4{,}822$) e estudo de caso severo ($18/03/2024$) |
+| **Teste Cego** | $2025$ | 4 meses ($1.729$ sequências) | Avaliação independente fora da amostra (*out-of-sample*) nos horizontes $+30, +60, +90\text{ e }+120\text{ min}$ |
+
+---
+
+## 4. Matriz de Benchmark e Verificação Multiescala
+
+1. **Baselines e Modelos Comparados:** Persistência Euleriana, GPTCast-8x8 Zero-Shot (pesos nativos alpinos MIARAD), Extrapolação Lagrangiana por Fluxo Óptico Lucas-Kanade (`pysteps`), Modelo Estocástico Intradiário **LINDA** (*Pulkkinen et al., 2021*) e **GPTCast-8x8 Fine-Tuned (RMF)**.
+2. **Intercomparação Institucional:** Referenciamento cruzado com dados de monitoramento da RMF (DECEA/Radar Banda S Eusébio, FUNCEME, CEMADEN, INMET, ANA e INPE/CPTEC).
+3. **Métricas de Verificação:**
+   * **Contínuas:** MAE ($\text{mm/h}$), RMSE ($\text{mm/h}$), SSIM e PCC.
+   * **Categóricas de Alerta Defesa Civil (Limiares de $1{,}0$, $5{,}0$, $10{,}0$ e $20{,}0\text{ mm/h}$):** CSI (*Critical Success Index*), POD, FAR, F1-Score, HSS e ETS.
+   * **Espaciais e Espectrais:** **RAPSD** (comprimento de onda de Nyquist em $4\text{ km}$), **SAL** (*Structure, Amplitude, Location* — *Wernli et al., 2008*) e **FSS** (*Fractions Skill Score* — *Roberts & Lean, 2008*, escalas de $2\text{ km}$ a $34\text{ km}$).
+
+---
+
+## 5. Como Citar este Trabalho (BibTeX)
+
+```bibtex
+@article{pinheiro2026fpluvia,
+  author       = {Pinheiro, Raul Santiago},
+  title        = {F-PluvIA Metropolitan: Nowcasting de Precipitação na Região Metropolitana de Fortaleza com Modelo GPTCast-8x8 e Benchmark Interinstitucional},
+  journal      = {Trabalho de Conclusão de Curso (Bacharelado em Ciência da Computação) -- Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE), Campus Maracanaú},
+  year         = {2026},
+  address      = {Maracanaú, CE, Brasil},
+  note         = {Semestre Letivo 2026.2. Repositório oficial: \url{[https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau](https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau)}}
+}
+```
