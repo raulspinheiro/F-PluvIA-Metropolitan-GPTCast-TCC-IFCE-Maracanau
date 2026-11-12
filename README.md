@@ -1,4 +1,4 @@
-# F-PluvIA Metropolitan: Previsão Imediata (*Nowcasting*) de Precipitação na Região Metropolitana de Fortaleza com Modelo GPTCast-8x8 e Benchmark Interinstitucional
+# F-PluvIA Metropolitan: Adaptação Cross-Sensor via Fine-Tuning Espaço-Temporal do VQGAN-Transformer GPTCast-8x8 e Benchmark Multi-Institucional para Nowcasting Generativo em Séries GPM IMERG-FR na Região Metropolitana de Fortaleza
 
 Repositório oficial dos artefatos de software, pipeline experimental de treinamento/inferência em GPU e certificação de proveniência científica do Trabalho de Conclusão de Curso (TCC), concebido no formato de **Artigo Científico**, apresentado ao Curso de Bacharelado em Ciência da Computação do **Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE) — Campus Maracanaú** (Semestre Letivo `2026.2`).
 
