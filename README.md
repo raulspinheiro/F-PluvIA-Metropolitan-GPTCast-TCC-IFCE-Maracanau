@@ -45,14 +45,14 @@ O projeto confronta o modelo ajustado contra baselines eulerianos e lagrangianos
 * **Rastreabilidade e Hardware:** Pipeline instrumentado para quantificar *speedup*, eficiência de VRAM e consumo de Unidades de Computação (CUs) no Google Colab Pro+ comparando as arquiteturas **NVIDIA RTX 6000 Blackwell (G4 — 95 GB GDDR7)** e **NVIDIA H100 Hopper (80 GB HBM3)**, acompanhado de geração automática de certificados de auditoria digital com hash SHA-256 dos artefatos.
 
 ---
-
 ## Organização do Repositório
 
 ![Organização do Repositório](docs/estrutura_repositorio.jpg)
 
+
 ```text
 ├── notebooks/
-│   └── F_PluvIA_Metropolitan_GPTCast8_Benchmark.ipynb   # Pipeline experimental unificado (Células 1 a 13.1)
+│   └── Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb   # Pipeline experimental unificado (Células 1 a 13.1)
 ├── src/
 │   ├── adapters/          # Implementações do GoF Adapter (IMERGToMiaradAdapter, PyStepsAdapter)
 │   ├── metrics/           # Módulos de cálculo de SAL, RAPSD, FSS e métricas de contingência ML
@@ -61,6 +61,6 @@ O projeto confronta o modelo ajustado contra baselines eulerianos e lagrangianos
 │   ├── figures/           # Painéis cartográficos a 300 dpi (Mapas RMF, RAPSD, SAL, Curvas FSS)
 │   └── tables/            # Relatórios consolidados em CSV por horizonte (+30 a +120 min) e ambiente
 └── docs/
-    ├── estrutura_repositorio.jpg   # Diagrama visual dos artefatos do repositório
+    ├── structure.md                # Guia descritivo da estrutura e dos artefatos da pasta docs/
     ├── references.bib              # Base de referências bibliográficas em formato BibTeX
-    └── provenance/                 # Certificados de auditoria forense da execução em GPU e hashes SHA-256
+    └── provenance/                 # Diretório de auditoria forense da execução em GPU e hashes SHA-256
