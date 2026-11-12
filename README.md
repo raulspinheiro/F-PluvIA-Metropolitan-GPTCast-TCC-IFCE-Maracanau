@@ -4,7 +4,7 @@ Repositório oficial dos artefatos de software, pipeline experimental de treinam
 
 * **Autor:** Raul Santiago Pinheiro
 * **Instituição:** IFCE — Campus Maracanaú (`2026.2`)
-* **Orientação Acadêmica:** [Currículo Lattes CNPq](http://lattes.cnpq.br/2629504708221802)
+* **Orientação Acadêmica:** Amauri Holanda de Souza Júnior [Currículo Lattes CNPq](http://lattes.cnpq.br/2629504708221802)
 * **Repositório Oficial:** [https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau](https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau)
 
 ---
