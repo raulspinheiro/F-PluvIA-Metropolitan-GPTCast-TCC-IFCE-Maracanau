@@ -1,0 +1,191 @@
+// ===== Célula Backup — pseudo-código =====
+// Célula Backup: Pacote Completo da Execução (.zip no Drive + download) — notebook e HTML, tabelas e
+// figuras com as subpastas preservadas (inclusive as da Célula 13), manifesto SHA-256, código de todas as
+// células (lido do notebook salvo) e ambiente Python.
+IMPORTAR datetime
+IMPORTAR fnmatch
+IMPORTAR hashlib
+IMPORTAR json
+IMPORTAR os
+IMPORTAR re
+IMPORTAR shutil
+IMPORTAR subprocess
+IMPORTAR sys
+IMPORTAR zipfile
+IMPORTAR Path DE pathlib
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+SERIES_CACHE_DIR ← globals().get("SERIES_CACHE_DIR", "/content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km")
+RESULTS_ENV_DIR ← Path(globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}')))
+// ------------------------------------------------------------------- 1. configuração
+NOTEBOOK_NAME ← "Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTI…"
+NOTEBOOK_PATH ← globals().get("DETECTED_NB_PATH")   // se None, procura NOTEBOOK_NAME no Drive
+DESTINO ← Path(SERIES_CACHE_DIR) / "backups_completos"
+EXT ← {".csv", ".png", ".jpg", ".svg", ".pdf", ".json", ".md", ".txt", ".log", ".html"}
+IGNORAR ← ["cell12_previsoes_*", "previsoes", "cache_*", "*.tmp*", ".ipynb_checkpoints", "__pycache__", "*6_orgaos*", "*6orgaos*", "*interinstitucion…
+// Pastas de resultados fora de RESULTS_ENV_DIR que também entram no pacote (rótulo -> pasta)
+PASTAS_EXTRAS ← {"comparativo_hardware": Path(SERIES_CACHE_DIR) / "comparativo_hardware_G4_vs_H100"}   // Célula 13
+BAIXAR_NO_NAVEGADOR ← VERDADEIRO
+LIMITE_DOWNLOAD_MB ← 1500   // acima disso o navegador costuma falhar; fica só no Drive
+agora ← datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=−3)))
+carimbo ← agora.strftime("%Y%m%d_%H%M%S")
+nome ← f'BACKUP_FPluvIA_{ENV_TAG}_{carimbo}'
+STAGE ← Path(("/content" SE os.path.isdir("/content") SENÃO "/tmp")) / nome
+EXECUTAR shutil.rmtree(STAGE, ignore_errors=VERDADEIRO)
+pastas ← [k: STAGE / k PARA CADA k EM ("01_notebook_e_relatorio", "02_tabelas", "03_figuras", "04_proveniencia_e_ambiente", "05_codigo_das_celulas")]
+PARA CADA p EM pastas.values() FAÇA
+    EXECUTAR p.mkdir(parents=VERDADEIRO)
+FIM PARA
+avisos ← []
+// ---------------------------------------------------------- 2. notebook e relatório HTML
+SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    PARA CADA cand EM (Path("/content/drive/MyDrive/Colab Notebooks") / NOTEBOOK_NAME, Path("/content/drive/MyDrive") / NOTEBOOK_NAME) FAÇA
+        SE cand.is_file() ENTÃO
+            NOTEBOOK_PATH ← str(cand)
+            INTERROMPER LAÇO
+        FIM SE
+    FIM PARA
+FIM SE
+SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    nb ← pastas["01_notebook_e_relatorio"] / Path(NOTEBOOK_PATH).name
+    EXECUTAR shutil.copy2(NOTEBOOK_PATH, nb)
+    salvo ← datetime.datetime.fromtimestamp(os.path.getmtime(NOTEBOOK_PATH), agora.tzinfo)
+    EXIBIR f'[1/5] Notebook copiado (salvo no Drive em {salvo:%d/%m/%Y %H:%…
+    r ← subprocess.run([sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", str(nb), "--output", f'{nb.stem}_completo'], capture_output=VER…
+    SE r.returncode = 0 ENTÃO
+        EXIBIR "[1/5] Relatório HTML gerado."
+    SENÃO
+        EXECUTAR avisos.append("HTML não gerado: " + r.stderr.strip().splitlines() OU ["erro desconhecido"][−1][:200])
+    FIM SE
+SENÃO
+    EXECUTAR avisos.append(f'Notebook {NOTEBOOK_NAME} não encontrado no Drive (defina DETEC…)
+FIM SE
+// --------------------------------------------------- 3. tabelas e figuras (subpastas mantidas)
+n_tab ← n_fig ← 0
+FUNÇÃO copiar_arvore(origem, prefixo)
+    USAR VARIÁVEIS GLOBAIS n_tab, n_fig
+    PARA CADA (dirpath, dirnames, files) EM os.walk(origem) FAÇA
+        dirnames[:] ← sorted([d PARA CADA d EM dirnames SE NÃO any([fnmatch.fnmatch(d, p) PARA CADA p EM IGNORAR])])
+        PARA CADA f EM sorted(files) FAÇA
+            src ← Path(dirpath) / f
+            ext ← src.suffix.lower()
+            SE ext NÃO EM EXT OU any([fnmatch.fnmatch(f, p) PARA CADA p EM IGNORAR]) ENTÃO
+                PASSAR À PRÓXIMA ITERAÇÃO
+            FIM SE
+            rel ← prefixo / src.relative_to(origem)
+            SE rel.parts[0] = "provenance" ENTÃO
+                dst ← pastas["04_proveniencia_e_ambiente"] / Path(*rel.parts[1:])
+            SENÃO SE ext EM {".png", ".jpg", ".svg", ".pdf"} ENTÃO
+                (dst, n_fig) ← (pastas["03_figuras"] / rel, n_fig + 1)
+            SENÃO
+                (dst, n_tab) ← (pastas["02_tabelas"] / rel, n_tab + 1)
+            FIM SE
+            EXECUTAR dst.parent.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+            EXECUTAR shutil.copy2(src, dst)
+        FIM PARA
+    FIM PARA
+FIM FUNÇÃO
+SE RESULTS_ENV_DIR.is_dir() ENTÃO
+    EXECUTAR copiar_arvore(RESULTS_ENV_DIR)
+SENÃO
+    EXECUTAR avisos.append(f'Pasta de resultados não encontrada: {RESULTS_ENV_DIR}')
+FIM SE
+PARA CADA (rotulo, pasta) EM PASTAS_EXTRAS.items() FAÇA
+    SE pasta.is_dir() ENTÃO
+        EXECUTAR copiar_arvore(pasta, Path(rotulo))
+    SENÃO
+        EXECUTAR avisos.append(f'Pasta {rotulo} não encontrada ({pasta}): rode a célula que a g…)
+    FIM SE
+FIM PARA
+EXIBIR f'[2/5] {n_tab} tabelas e {n_fig} figuras copiadas (subpastas pr…
+// ------------------------------------------------- 4. código das células e ambiente Python
+_EMAIL ← re.compile("[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+")
+_SEGREDO ← re.compile("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s*=\s*…", re.I)
+// Código de TODAS as células, lido do notebook salvo (não só das executadas nesta sessão).
+(ultima, fontes) ← ({}, [])
+_nb_copia ← next(iter(pastas["01_notebook_e_relatorio"].glob("*.ipynb")), NULO)
+SE _nb_copia NÃO É NULO ENTÃO
+    TENTAR
+        fontes ← ["".join(c.get("source", [])) PARA CADA c EM json.loads(_nb_copia.read_text(encoding="utf-8"))["cells"] SE c.get("cell_type") = "cod…
+    SE OCORRER ERRO Exception (chamado e)
+        EXECUTAR avisos.append(f'Não foi possível ler as células do notebook ({type(e).__name__…)
+    FIM TENTAR
+FIM SE
+SE NÃO fontes ENTÃO
+    ip ← (get_ipython() SE "get_ipython" EM globals() SENÃO NULO)
+    fontes ← (list(ip.user_ns.get("_ih", [])) SE ip NÃO É NULO SENÃO [])
+FIM SE
+PARA CADA (k, src) EM enumerate(fontes, 1) FAÇA
+    m ← re.search("^#\s*(?:@title\s*#\s*)?C[ée]lula\s+([^:\n]+)", src OU "", re.M)
+    SE m ENTÃO
+        ultima[m.group(1).strip()] ← src
+    SENÃO SE _nb_copia NÃO É NULO E src OU "".strip() ENTÃO
+        ultima[f'sem_titulo_{k:02d}'] ← src
+    FIM SE
+FIM PARA
+PARA CADA (rot, src) EM ultima.items() FAÇA
+    slug ← re.sub("[^0-9A-Za-z]+", "_", rot.lower().replace("é", "e")).strip("_")
+    txt ← _EMAIL.sub("[e-mail oculto]", _SEGREDO.sub("\1\2[OCULTO]\2", src))
+    EXECUTAR pastas["05_codigo_das_celulas"] / f'celula_{slug}.py'.write_text(txt.rstrip() + " ", encoding="utf-8")
+FIM PARA
+amb ← pastas["04_proveniencia_e_ambiente"]
+USANDO open(amb / "requirements_ambiente_colab.txt", "w", encoding="utf-8") COMO f
+    EXECUTAR subprocess.run([sys.executable, "-m", "pip", "freeze"], stdout=f, stderr=subprocess.DEVNULL, check=FALSO)
+FIM USANDO
+smi ← shutil.which("nvidia-smi")
+SE smi ENTÃO
+    EXECUTAR amb / "nvidia_smi.txt".write_text(subprocess.run([smi], capture_output=VERDADEIRO, text=VERDADEIRO).stdout, encoding="utf-8")
+FIM SE
+PARA CADA var EM ("LAST_JSON_CERT", "LAST_MD_CERT", "LAST_SHA256SUMS") FAÇA   // manifesto desta sessão (Célula Extra 2)
+    v ← globals().get(var)
+    SE v E os.path.isfile(v) E NÃO amb / Path(v).name.exists() ENTÃO
+        EXECUTAR shutil.copy2(v, amb / Path(v).name)
+    FIM SE
+FIM PARA
+EXIBIR f'[3/5] Código de {len(ultima)} células, pip freeze e manifesto …
+// ------------------------------------------------ 5. índice do pacote e compactação
+conteudo ← []
+PARA CADA p EM sorted(STAGE.rglob("*")) FAÇA
+    SE p.is_file() ENTÃO
+        h ← hashlib.sha256(p.read_bytes()).hexdigest()
+        EXECUTAR conteudo.append((p.relative_to(STAGE).as_posix(), p.stat().st_size, h))
+    FIM SE
+FIM PARA
+EXECUTAR STAGE / "SHA256SUMS_pacote.txt".write_text("".join([f'{h}  {r}\n' PARA CADA (r, _, h) EM conteudo]), encoding="utf-8")
+EXECUTAR STAGE / "LEIA-ME.json".write_text(json.dumps({"projeto": "F-PluvIA Metropolitan — TCC, Bacharelado em Ciência da Compu…", "ambiente": ENV_LA…
+EXIBIR f'[4/5] Índice SHA-256 de {len(conteudo)} arquivos gravado no pa…
+EXECUTAR DESTINO.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+zip_path ← DESTINO / f'{nome}.zip'
+USANDO zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) COMO z
+    PARA CADA p EM sorted(STAGE.rglob("*")) FAÇA
+        SE p.is_file() ENTÃO
+            EXECUTAR z.write(p, p.relative_to(STAGE).as_posix())
+        FIM SE
+    FIM PARA
+FIM USANDO
+EXECUTAR shutil.rmtree(STAGE, ignore_errors=VERDADEIRO)
+h ← hashlib.sha256()
+USANDO open(zip_path, "rb") COMO f
+    PARA CADA bloco EM iter(FUNÇÃO() ↦ f.read(8 << 20), b'') FAÇA
+        EXECUTAR h.update(bloco)
+    FIM PARA
+FIM USANDO
+EXECUTAR DESTINO / f'{nome}.zip.sha256'.write_text(f'{h.hexdigest()}  {zip_path.name}\n', encoding="utf-8")
+mb ← zip_path.stat().st_size / 2 ^ 20
+EXIBIR f'[5/5] Pacote salvo no Drive: {zip_path} ({mb:.1f} MB) | SHA-25…
+PARA CADA a EM avisos FAÇA
+    EXIBIR f'  [aviso] {a}'
+FIM PARA
+EXIBIR "  O notebook e o HTML guardam as saídas como foram exibidas:…"
+SE BAIXAR_NO_NAVEGADOR ENTÃO
+    SE mb > LIMITE_DOWNLOAD_MB ENTÃO
+        EXIBIR f'  Download pelo navegador não iniciado (pacote acima de {LIMIT…
+    SENÃO
+        TENTAR
+            IMPORTAR files DE google.colab
+            EXECUTAR files.download(str(zip_path))
+        SE OCORRER ERRO Exception (chamado e)
+            EXIBIR f'  Download pelo navegador indisponível ({type(e).__name__}); o…
+        FIM TENTAR
+    FIM SE
+FIM SE

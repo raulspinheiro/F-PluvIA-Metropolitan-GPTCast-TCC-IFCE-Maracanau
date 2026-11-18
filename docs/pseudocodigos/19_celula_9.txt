@@ -1,0 +1,181 @@
+// ===== Célula 9 — pseudo-código =====
+// Célula 9: Estágio 2 — Métricas por Horizonte (+30 a +120 min) no Estudo de Caso (Tabelas 4 e 5),
+// com SSIM em faixa fixa, escores indefinidos marcados como NaN e variabilidade entre sorteios do GPTCast.
+IMPORTAR datetime
+IMPORTAR os
+IMPORTAR matplotlib.pyplot (como plt)
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR torch
+IMPORTAR dbz_to_rainfall, rainfall_to_dbz DE gptcast.utils.converters
+IMPORTAR structural_similarity (como ssim) DE skimage.metrics
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+THRESHOLDS ← (0.5, 1.0, 5.0, 10.0)
+N_MEMBERS ← 10   // sorteios do GPTCast por modelo (a amostragem de tokens é aleatória)
+MEMBER_SEEDS ← [42 + k PARA CADA k EM range(N_MEMBERS)]   // o membro 42 é o mesmo da Célula 4
+SE "data_str" NÃO EM globals() ENTÃO
+    data_str ← dt − datetime.timedelta(minutes=30 × FORECAST_STEPS + 180).strftime("%d/%m/%Y")
+FIM SE
+SE "persistence_rain" NÃO EM globals() ENTÃO
+    _last ← np.asarray(np.ma.filled(input_data_dbz[−1], 0.0))
+    last_in_rain ← np.clip(dbz_to_rainfall(np.clip(_last, 0.0, 60.0)), 0.0, 205.0)
+    persistence_rain ← np.repeat(last_in_rain[NULO], FORECAST_STEPS, axis=0)
+FIM SE
+FUNÇÃO _to_dbz(rain)
+    r ← np.clip(np.asarray(rain, dtype=np.float64), 0.0, 205.0)
+    out ← np.zeros_like(r)
+    wet ← r > 0.0365
+    out[wet] ← rainfall_to_dbz(r[wet])
+    RETORNAR np.clip(out, 0.0, 60.0)
+FIM FUNÇÃO
+// -------------------------------------------------- 1. métricas por horizonte (reutilizada)
+FUNÇÃO evaluate_nowcast_by_leadtime(obs_seq, pred_seq, model_name, step_minutes, thresholds)
+    // MAE, RMSE, SSIM (em dBZ, faixa fixa de 60 dBZ), PCC, CSI e BIAS por passo futuro.
+    // 
+    // Escores sem eventos (ex.: CSI sem chuva acima do limiar em nenhum dos campos) ficam NaN.
+    o_all ← np.clip(np.nan_to_num(np.asarray(obs_seq), nan=0.0), 0.0, 205.0).astype(np.float64)
+    p_all ← np.clip(np.nan_to_num(np.asarray(pred_seq), nan=0.0), 0.0, 205.0).astype(np.float64)
+    rows ← []
+    PARA CADA i EM range(o_all.shape[0]) FAÇA
+        (o, p) ← (o_all[i], p_all[i])
+        row ← {"Ambiente_Execucao": ENV_LABEL, "Hardware_Tag": ENV_TAG, "Modelo": model_name, "Lead Time": f'+{(i + 1) * step_minutes} min', "Lead_mi…
+        PARA CADA thr EM thresholds FAÇA
+            (ob, pb) ← (o ≥ thr, p ≥ thr)
+            (tp, fp, fn) ← (int(np.sum(ob & pb)), int(np.sum(~ob & pb)), int(np.sum(ob & ~pb)))
+            csi ← (tp / tp + fp + fn SE tp + fp + fn SENÃO np.nan)
+            bias ← (tp + fp / tp + fn SE tp + fn SENÃO np.nan)
+            row[f'CSI_{thr}'] ← (round(csi, 4) SE np.isfinite(csi) SENÃO np.nan)
+            row[f'BIAS_{thr}'] ← (round(bias, 3) SE np.isfinite(bias) SENÃO np.nan)
+            SE NÃO np.isfinite(csi) ENTÃO
+                row[f'CSI/BIAS @ {thr} mm/h'] ← "sem eventos"
+            SENÃO SE NÃO np.isfinite(bias) ENTÃO
+                row[f'CSI/BIAS @ {thr} mm/h'] ← f'{csi:.3f} / sem obs'
+            SENÃO
+                row[f'CSI/BIAS @ {thr} mm/h'] ← f'{csi:.3f} / {bias:.2f}'
+            FIM SE
+        FIM PARA
+        EXECUTAR rows.append(row)
+    FIM PARA
+    RETORNAR pd.DataFrame(rows)
+FIM FUNÇÃO
+// --------------------------------------------- 2. variabilidade entre sorteios do GPTCast
+FUNÇÃO forecast_members(model, seeds)
+    // N previsões do mesmo contexto, uma por semente: (N, passos, H, W) em mm/h.
+    out ← []
+    PARA CADA sd EM seeds FAÇA
+        EXECUTAR torch.manual_seed(sd)
+        EXECUTAR np.random.seed(sd)
+        raw ← model.forecast(clean_in_dbz, steps=FORECAST_STEPS, units="dbz", verbosity=0)
+        raw ← (raw.filled(0.0) SE isinstance(raw, np.ma.MaskedArray) SENÃO np.asarray(raw))
+        EXECUTAR out.append(dbz_to_rainfall(np.clip(np.nan_to_num(raw, nan=0.0), 0.0, 60.0)))
+    FIM PARA
+    RETORNAR np.stack(out).astype(np.float32)
+FIM FUNÇÃO
+members ← {"GPTCast-8x8 (Fine-Tuned RMF)": forecast_members(gpt8, MEMBER_SEEDS)}
+SE "gpt8_zeroshot" EM globals() ENTÃO
+    members["GPTCast-8x8 (Zero-Shot)"] ← forecast_members(gpt8_zeroshot, MEMBER_SEEDS)
+FIM SE
+// ------------------------------------------------------------ 3. tabelas 4 e 5
+df_gpt8 ← evaluate_nowcast_by_leadtime(ground_truth_rain, forecast8_rain, "GPTCast-8x8 (Fine-Tuned RMF)")
+df_pers ← evaluate_nowcast_by_leadtime(ground_truth_rain, persistence_rain, "Persistência (Baseline)")
+dfs ← [df_gpt8]
+SE "forecast8_zeroshot_rain" EM globals() ENTÃO
+    df_gpt8_zs ← evaluate_nowcast_by_leadtime(ground_truth_rain, forecast8_zeroshot_rain, "GPTCast-8x8 (Zero-Shot)")
+    EXECUTAR dfs.append(df_gpt8_zs)
+FIM SE
+EXECUTAR dfs.append(df_pers)
+PARA CADA (name, M) EM members.items() FAÇA   // média do conjunto de sorteios como previsão adicional
+    EXECUTAR dfs.append(evaluate_nowcast_by_leadtime(ground_truth_rain, M.mean(axis=0), f'{name} — média de {N_MEMBERS} sorteios'))
+FIM PARA
+df_stage2_eval ← pd.concat(dfs, ignore_index=VERDADEIRO)
+stage2_csv_path ← os.path.join(RESULTS_ENV_DIR, f'tabelas4e5_estagio2_leadtime_2km_{ENV_TAG}_2019_2025.csv')
+EXECUTAR df_stage2_eval.to_csv(stage2_csv_path, index=FALSO)
+// Métricas de cada sorteio (calculadas uma vez e usadas na tabela, no ranking de sementes e no painel)
+PAINEL ← [("RMSE (↓) [mm/h]", "RMSE (mm/h, ↓)", FALSO), ("MAE (↓) [mm/h]", "MAE (mm/h, ↓)", FALSO), ("SSIM (↑)", "SSIM em dBZ (↑)", VERDADEIRO), ("CS…
+TAB_COLS ← ["MAE (↓) [mm/h]", "RMSE (↓) [mm/h]", "SSIM (↑)", "CSI_0.5", "CSI_1.0", "Pico Prev [mm/h]", "Volume Prev/Obs (=1)"]
+per_member ← [name: [evaluate_nowcast_by_leadtime(ground_truth_rain, M[k], name) PARA CADA k EM range(len(M))] PARA CADA (name, M) EM members.items()]
+vals ← [name: [c: np.array([pd.to_numeric(d[c], errors="coerce").values PARA CADA d EM dfs], dtype=float) PARA CADA c EM TAB_COLS] PARA CADA (name, d…
+leads_txt ← list(per_member[next(iter(per_member))][0]["Lead Time"])
+// Dispersão das métricas entre os sorteios (média ± desvio-padrão)
+spread_rows ← []
+PARA CADA (name, V) EM vals.items() FAÇA
+    PARA CADA (j, lt) EM enumerate(leads_txt) FAÇA
+        r ← {"Modelo": name, "Lead Time": lt, "Sorteios": len(MEMBER_SEEDS)}
+        PARA CADA c EM ("MAE (↓) [mm/h]", "SSIM (↑)", "CSI_0.5", "CSI_1.0", "Pico Prev [mm/h]", "Volume Prev/Obs (=1)") FAÇA
+            r[c] ← f'{np.nanmean(V[c][:, j]):.3f} ± {np.nanstd(V[c][:, j], ddof=1):…
+        FIM PARA
+        EXECUTAR spread_rows.append(r)
+    FIM PARA
+FIM PARA
+df_stage2_spread ← pd.DataFrame(spread_rows)
+EXECUTAR df_stage2_spread.to_csv(os.path.join(RESULTS_ENV_DIR, f'tabela_estagio2_dispersao_sorteios_{ENV_TAG}.csv'), index=FALSO)
+// Melhor e pior semente por modelo, métrica e horizonte
+seed_rows ← []
+PARA CADA (name, V) EM vals.items() FAÇA
+    PARA CADA (c, titulo, maior_melhor) EM PAINEL FAÇA
+        PARA CADA (j, lt) EM enumerate(leads_txt) FAÇA
+            v ← V[c][(:, j)]
+            SE np.all(np.isnan(v)) ENTÃO
+                PASSAR À PRÓXIMA ITERAÇÃO
+            FIM SE
+            (ib, iw) ← ((np.nanargmax(v), np.nanargmin(v)) SE maior_melhor SENÃO (np.nanargmin(v), np.nanargmax(v)))
+            EXECUTAR seed_rows.append({"Modelo": name, "Métrica": titulo, "Lead Time": lt, "Média ± dp": f'{np.nanmean(v):.3f} ± {np.nanstd(v, ddof=1…
+        FIM PARA
+    FIM PARA
+FIM PARA
+df_stage2_seeds ← pd.DataFrame(seed_rows)
+EXECUTAR df_stage2_seeds.to_csv(os.path.join(RESULTS_ENV_DIR, f'tabela_estagio2_melhor_pior_semente_{ENV_TAG}.csv'), index=FALSO)
+cols ← ["Ambiente_Execucao", "Modelo", "Lead Time", "MAE (↓) [mm/h]", "RMSE (↓) [mm/h]", "SSIM (↑)", "PCC (↑)", "Volume Prev/Obs (=1)"] + [f'CSI/BIAS…
+EXIBIR f'=== Tabelas 4 e 5 — Estágio 2 por horizonte no estudo de caso …
+EXIBIR "SSIM em dBZ com faixa fixa de 60 dBZ. "sem eventos" = nenhum…"
+EXIBIR df_stage2_eval[cols].set_index(["Ambiente_Execucao", "Modelo", "Lead Time"])
+EXIBIR f'\n=== Variabilidade entre {N_MEMBERS} sorteios do GPTCast (mes…
+EXIBIR df_stage2_spread.set_index(["Modelo", "Lead Time"])
+EXIBIR " === Melhor e pior sorteio por métrica e horizonte (semente …"
+EXIBIR "Para ver o mapa de um sorteio: torch.manual_seed(semente); n…"
+EXIBIR df_stage2_seeds.set_index(["Modelo", "Métrica", "Lead Time"])
+// ------------------------------------------------------------------ 4. painel
+// Para cada GPTCast: faixa clara = mín.–máx.; faixa escura = média ± 1 dp;
+// linha grossa = média dos sorteios; a semente do pior sorteio de cada horizonte é escrita ao lado do ponto.
+(fig, axes) ← plt.subplots(1, 4, figsize=(19, 4.8), constrained_layout=VERDADEIRO)
+cores ← {"GPTCast-8x8 (Fine-Tuned RMF)": ("#d62728", "o-"), "GPTCast-8x8 (Zero-Shot)": ("#ff7f0e", "v--")}
+x ← np.arange(1, FORECAST_STEPS + 1) × 30
+PARA CADA (name, V) EM vals.items() FAÇA
+    (color, ls) ← cores.get(name, ("#1f77b4", "o-"))
+    PARA CADA (ax, (c, _, maior_melhor)) EM zip(axes, PAINEL) FAÇA
+        v ← V[c]
+        (med, dp) ← (np.nanmean(v, 0), np.nanstd(v, 0, ddof=1))
+        EXECUTAR ax.fill_between(x, np.nanmin(v, 0), np.nanmax(v, 0), color=color, alpha=0.08, lw=0, zorder=0)
+        EXECUTAR ax.fill_between(x, med − dp, med + dp, color=color, alpha=0.22, lw=0, zorder=1)
+        EXECUTAR ax.plot(x, med, ls, color=color, lw=2.2, zorder=3, label=f'{name} — média de {len(v)} sorteios')
+        PARA CADA j EM range(len(x)) FAÇA   // semente do pior sorteio, só onde ele se afasta da média
+            col ← v[(:, j)]
+            SE np.all(np.isnan(col)) ENTÃO
+                PASSAR À PRÓXIMA ITERAÇÃO
+            FIM SE
+            iw ← (np.nanargmin(col) SE maior_melhor SENÃO np.nanargmax(col))
+            SE abs(col[iw] − med[j]) > 1.5 × (dp[j] SE dp[j] > 0 SENÃO np.inf) ENTÃO
+                EXECUTAR ax.annotate(f's{MEMBER_SEEDS[iw]}', (x[j], col[iw]), xytext=(4, 0), textcoords="offset points", fontsize=7.5, color=color, f…
+            FIM SE
+        FIM PARA
+    FIM PARA
+FIM PARA
+sub ← df_stage2_eval[df_stage2_eval["Modelo"] = "Persistência (Baseline)"]
+PARA CADA (ax, (c, titulo, _)) EM zip(axes, PAINEL) FAÇA
+    SE NÃO sub.empty ENTÃO
+        EXECUTAR ax.plot(sub["Lead_min_num"], pd.to_numeric(sub[c], errors="coerce"), "s:", color="#7f7f7f", lw=2, zorder=4, label="Persistência (Bas…
+    FIM SE
+    EXECUTAR ax.set_title(titulo, fontweight="bold", fontsize=11)
+    EXECUTAR ax.set_xlabel("Horizonte (min)")
+    EXECUTAR ax.set_xticks(x)
+    EXECUTAR ax.grid(VERDADEIRO, ls=":", alpha=0.6)
+FIM PARA
+EXECUTAR axes[0].legend(fontsize=7.5)
+EXECUTAR fig.suptitle(f'Estágio 2 por horizonte — estudo de caso {data_str} (validação…, fontsize=11, fontweight="bold")
+stage2_fig_path ← os.path.join(RESULTS_ENV_DIR, f'painel_estagio2_leadtime_2km_{ENV_TAG}.png')
+EXECUTAR fig.savefig(stage2_fig_path, dpi=300, bbox_inches="tight")
+EXIBIR
+EXIBIR f'[Célula 9] Tabelas -> {stage2_csv_path}\n[Célula 9] Painel -> …

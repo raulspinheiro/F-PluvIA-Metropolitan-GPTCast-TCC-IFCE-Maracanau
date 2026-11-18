@@ -1,0 +1,198 @@
+// ===== Célula 4.1 — pseudo-código =====
+// Célula 4.1: Validação Fine-Tuned × Zero-Shot — perda de validação de 2024 dos dois modelos, nas mesmas
+// janelas, por janela e por posição de quadro, com intervalo de confiança da diferença (bootstrap por dias).
+// Responde se o fine-tuning da Célula 4 melhorou o modelo de partida.
+// Eesuisito de Execução: Rodar depois da Célula 4.
+IMPORTAR json
+IMPORTAR os
+IMPORTAR textwrap
+IMPORTAR time
+IMPORTAR matplotlib.pyplot (como plt)
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR torch
+IMPORTAR torch.nn.functional (como F)
+IMPORTAR DataLoader DE torch.utils.data
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+SEED ← int(globals().get("SEED", 42))
+N_BOOT ← 2000   // reamostragens de dias inteiros
+TOL_REGISTRO ← 0.02   // tolerância entre a perda medida aqui e a melhor val/loss registrada no treino
+TOKENS_QUADRO ← 64   // 8 x 8 tokens por quadro
+faltam ← [n PARA CADA n EM ("gpt8", "gpt8_zeroshot", "md_rmf") SE n NÃO EM globals()]
+SE faltam ENTÃO
+    LANÇAR ERRO RuntimeError(f"Rode antes a Célula 4. Faltam: {', '.join(faltam)}")
+FIM SE
+ds_val ← md_rmf.splits["val"]
+crop ← getattr(ds_val, "crop", globals().get("VAL_CROP", "?"))
+n_ctx_frames ← int(getattr(ds_val, "target_seq_len", 8) OU 8)
+n_win_frames ← int(ds_val.sequences_dbz.shape[1])
+inicio ← {"start": 0, "end": n_win_frames − n_ctx_frames}.get(crop, 0)
+quadros ← np.arange(inicio + 1, inicio + n_ctx_frames + 1)   // números dos quadros na janela de 11
+CONTEXT ← int(globals().get("CONTEXT_STEPS", 7))
+previstos ← quadros > CONTEXT   // quadros 8 a 11 = os previstos na inferência
+// ------------------------------------------------------------- aceleração na GPU (CUDA)
+// Ao fim do trainer.fit o Lightning devolve o modelo para a CPU, e o checkpoint do Zero-Shot é carregado na CPU.
+// Por isso os dois modelos são levados à GPU aqui, antes de medir; eles continuam nela para as células seguintes.
+SE torch.cuda.is_available() ENTÃO
+    PARA CADA _nome EM ("gpt8", "gpt8_zeroshot") FAÇA
+        _m ← globals()[_nome]
+        SE _m.device.type ≠ "cuda" ENTÃO
+            EXIBIR f'[Célula 4.1] Movendo {_nome} da {_m.device.type.upper()} para …
+            globals()[_nome] ← _m.to("cuda")
+        FIM SE
+    FIM PARA
+    (gpt8, gpt8_zeroshot) ← (globals()["gpt8"], globals()["gpt8_zeroshot"])
+FIM SE
+USA_CUDA ← torch.cuda.is_available() E gpt8.device.type = "cuda" E gpt8_zeroshot.device.type = "cuda"
+SE torch.cuda.is_available() E NÃO USA_CUDA ENTÃO
+    EXIBIR "[Aviso Célula 4.1] Não foi possível levar os modelos à GPU: …"
+FIM SE
+SE USA_CUDA ENTÃO
+    torch.backends.cuda.matmul.allow_tf32 ← VERDADEIRO   // operações fora do autocast usam TF32 nos Tensor Cores
+    torch.backends.cudnn.allow_tf32 ← VERDADEIRO
+    torch.backends.cudnn.benchmark ← VERDADEIRO   // escolhe o algoritmo de convolução mais rápido (formato fixo)
+    vram_gb ← torch.cuda.get_device_properties(0).total_memory / 2 ^ 30
+    // Sem gradientes a memória por janela é bem menor que no treino: lotes maiores aproveitam a GPU.
+    BATCH_INF ← (64 SE vram_gb ≥ 65 SENÃO (32 SE vram_gb ≥ 20 SENÃO 8))
+    _nw ← min(8, os.cpu_count() OU 2)
+    loader_val ← DataLoader(ds_val, batch_size=BATCH_INF, shuffle=FALSO, num_workers=_nw, pin_memory=VERDADEIRO, persistent_workers=FALSO, prefetch_f…
+    EXECUTAR torch.cuda.reset_peak_memory_stats(0)
+SENÃO
+    BATCH_INF ← getattr(md_rmf, "batch_size", "?")
+    loader_val ← NULO   // usa o carregador da Célula 3
+FIM SE
+// decorador: torch.inference_mode()
+FUNÇÃO perdas_por_janela(model)
+    // Entropia cruzada por token, igual ao shared_step do GPTCast, mas sem fazer a média do lote:
+    // devolve (janelas, posições de token) para tirar médias por janela e por quadro.
+    // Na GPU: modo de inferência, autocast bf16, cópia assíncrona da memória fixada e resultados mantidos na GPU
+    // até o fim (uma única transferência para a CPU).
+    EXECUTAR model.eval()
+    dev ← model.device
+    out ← []
+    amp ← (torch.autocast("cuda", dtype=torch.bfloat16) SE dev.type = "cuda" SENÃO torch.autocast("cpu", enabled=FALSO))
+    PARA CADA batch EM (loader_val SE loader_val NÃO É NULO SENÃO md_rmf.val_dataloader()) FAÇA   // ordem = ds_val.timestamps
+        batch ← [k: (v.to(dev, non_blocking=VERDADEIRO) SE torch.is_tensor(v) SENÃO v) PARA CADA (k, v) EM batch.items()]
+        (x, c) ← model.get_xc(batch)
+        USANDO amp
+            (logits, target) ← model(x, c)
+        FIM USANDO
+        ce ← F.cross_entropy(logits.float().reshape(−1, logits.size(−1)), target.reshape(−1), reduction="none")
+        EXECUTAR out.append(ce.view(target.shape))
+    FIM PARA
+    RETORNAR torch.cat(out).cpu().numpy()   // (N, 512)
+FIM FUNÇÃO
+FUNÇÃO _sync()
+    SE USA_CUDA ENTÃO
+        EXECUTAR torch.cuda.synchronize()
+    FIM SE
+    RETORNAR time.perf_counter()
+FIM FUNÇÃO
+t_ini ← _sync()
+t0 ← _sync()
+ce_zs ← perdas_por_janela(gpt8_zeroshot)
+t_zs ← _sync() − t0
+t0 ← _sync()
+ce_ft ← perdas_por_janela(gpt8)
+t_ft ← _sync() − t0
+t_total ← _sync() − t_ini
+pico_vram ← (torch.cuda.max_memory_allocated(0) / 2 ^ 30 SE USA_CUDA SENÃO 0.0)
+(N, L) ← ce_ft.shape
+SE L ≠ n_ctx_frames × TOKENS_QUADRO ENTÃO
+    EXIBIR f'[Aviso Célula 4.1] {L} tokens por janela; esperado {n_ctx_fram…
+FIM SE
+(win_zs, win_ft) ← (ce_zs.mean(1), ce_ft.mean(1))   // perda por janela
+delta ← win_ft − win_zs   // Δ_j < 0: ajustado melhor
+fr_zs ← ce_zs.reshape(N, −1, TOKENS_QUADRO).mean(2)   // (N, 8) perda por quadro
+fr_ft ← ce_ft.reshape(N, −1, TOKENS_QUADRO).mean(2)
+(L_zs, L_ft) ← (float(win_zs.mean()), float(win_ft.mean()))
+D ← L_ft − L_zs
+// Bootstrap por dias inteiros (janelas do mesmo dia compartilham quadros)
+ts ← np.asarray(ds_val.timestamps)[:N]
+dias ← pd.to_datetime(ts).normalize().values
+(ud, inv) ← np.unique(dias, return_inverse=VERDADEIRO)
+(soma_d, cont_d) ← (np.bincount(inv, delta, len(ud)), np.bincount(inv, minlength=len(ud)))
+rng ← np.random.default_rng(SEED)
+am ← rng.integers(0, len(ud), (N_BOOT, len(ud)))
+boot ← soma_d[am].sum(1) / cont_d[am].sum(1)
+ic ← (float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5)))
+frac_melhor ← float(np.mean(delta < 0))
+D_prev ← (float(fr_ft[(:, previstos)] − fr_zs[(:, previstos)].mean()) SE previstos.any() SENÃO np.nan)
+// Conferência com o registro do treino
+rec ← {}
+SE "training_record_json" EM globals() E os.path.isfile(training_record_json) ENTÃO
+    rec ← json.load(open(training_record_json, encoding="utf-8"))
+FIM SE
+melhor_reg ← rec.get("melhor_val_loss_2024")
+// Diagnóstico: o IC 95 % da diferença é o único critério; o ganho em perplexidade vem ao lado, sem limiar.
+// Perplexidade = exp(L); a razão FT/ZS é exp(Δ), então o ganho (%) = 100 · (1 − exp(Δ)).
+ganho_pp ← 100 × 1 − np.exp(D)
+ganho_ic ← (100 × 1 − np.exp(ic[1]), 100 × 1 − np.exp(ic[0]))
+_n ← FUNÇÃO(v) ↦ f'{v:+.4f}'.replace(".", ",")
+_p ← FUNÇÃO(v) ↦ f'{v:.1f}'.replace(".", ",") + " %"
+_txt_d ← f'Δ = {_n(D)} nats por token, IC 95 % de {_n(ic[0])} a {_n(ic[1]…
+SE ic[1] < 0 ENTÃO
+    diag ← f'O ajustado é melhor que o Zero-Shot ({_txt_d}): perplexidade {…
+SENÃO SE ic[0] > 0 ENTÃO
+    diag ← f'O ajustado é PIOR que o Zero-Shot ({_txt_d}): perplexidade {_p…
+SENÃO
+    diag ← f'Não há diferença comprovada entre o ajustado e o Zero-Shot ({_…
+FIM SE
+// ------------------------------------------------------------------- figura
+fig ← plt.figure(figsize=(16, 6.4))
+gs ← fig.add_gridspec(1, 2, wspace=0.2)
+EXECUTAR fig.suptitle("Validação Fine-Tuned × Zero-Shot", fontsize=16, fontweight="bold", y=0.99)
+ax1 ← fig.add_subplot(gs[(0, 0)])
+PARA CADA (nome, fr, cor, mk) EM (("Zero-Shot", fr_zs, "#ff7f0e", "v--"), ("Fine-Tuned", fr_ft, "#d62728", "o-")) FAÇA
+    m ← fr.mean(0)
+    EXECUTAR ax1.plot(quadros, m, mk, color=cor, lw=2.2, label=f'{nome} (média {fr.mean():.3f})')
+FIM PARA
+SE previstos.any() ENTÃO
+    EXECUTAR ax1.axvspan(quadros[previstos][0] − 0.5, quadros[previstos][−1] + 0.5, color="#1f77b4", alpha=0.08, label="Quadros previstos na inferênc…
+FIM SE
+EXECUTAR ax1.set_title("Perda por quadro da janela  $(\mathcal{L} = -\frac{1}{N}\,\S…", fontweight="bold")
+EXECUTAR ax1.set_xlabel(f'Quadro da janela de {n_win_frames} (corte de validação: {crop!…)
+EXECUTAR ax1.set_ylabel("$\mathcal{L}$ (entropia cruzada, nats por token)")
+EXECUTAR ax1.set_xticks(quadros)
+EXECUTAR ax1.grid(VERDADEIRO, ls=":", alpha=0.6)
+EXECUTAR ax1.legend(fontsize=8.5)
+ax2 ← fig.add_subplot(gs[(0, 1)])
+lim ← np.percentile(np.abs(delta), 99.5)
+EXECUTAR ax2.hist(np.clip(delta, −lim, lim), bins=60, color="#7f7f7f", alpha=0.75)
+EXECUTAR ax2.axvline(0, color="k", lw=1)
+EXECUTAR ax2.axvline(D, color="#d62728", lw=2.2, label=f'Média Δ = {D:+.4f}')
+EXECUTAR ax2.axvspan(ic[0], ic[1], color="#d62728", alpha=0.18, label=f'IC 95 % (bootstrap por {len(ud)} dias)')
+EXECUTAR ax2.set_title("Diferença por janela  $(\Delta_j = \mathcal{L}_{\mathrm{FT},…", fontweight="bold")
+EXECUTAR ax2.set_xlabel("$\Delta_j$ (negativo = Fine-Tuned melhor)")
+EXECUTAR ax2.set_ylabel("Janelas de 2024")
+EXECUTAR ax2.grid(VERDADEIRO, axis="y", ls=":", alpha=0.6)
+EXECUTAR ax2.legend(fontsize=8.5)
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR") OU os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}')
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+png ← os.path.join(RESULTS_ENV_DIR, f'validacao_finetuned_vs_zeroshot_{ENV_TAG}.png')
+EXECUTAR fig.savefig(png, dpi=200, bbox_inches="tight")
+EXIBIR
+// ------------------------------------------------------------------- saída de texto
+resumo ← pd.DataFrame([{"Modelo": "Zero-Shot", "val/loss (nats/token)": round(L_zs, 4), "Perplexidade (exp L)": round(float(np.exp(L_zs)), 1), "val/l…
+por_quadro ← pd.DataFrame({"Quadro": quadros, "Zero-Shot": fr_zs.mean(0).round(4), "Fine-Tuned": fr_ft.mean(0).round(4), "Δ (FT − ZS)": fr_ft.mean(0)…
+EXECUTAR pd.DataFrame({"t0_fim_janela": ts, "val_loss_zero_shot": win_zs, "val_loss_fine_tuned": win_ft, "delta": delta}).to_csv(os.path.join(RESULTS…
+EXECUTAR resumo.assign(Delta=round(D, 4), IC95_inf=round(ic[0], 4), IC95_sup=round(ic[1], 4), Ganho_perplexidade_pct=round(float(ganho_pp), 2), Janel…
+EXIBIR "=== Contexto da validação (F-PluvIA Metropolitan — Célula 4.…"
+PARA CADA ln EM (f"Ambiente: {ENV_LABEL}  |  dispositivo: {(torch.cuda.get_device… + (f'CUDA {torch.version.cuda}  |  autocast bf16 + TF32  |  ' SE U…
+    EXIBIR "  " + ln
+FIM PARA
+EXIBIR f'\n[Célula 4.1] Figura -> {png}\n'
+EXIBIR resumo.set_index("Modelo").to_string()
+EXIBIR f'\nΔ = val/loss(Fine-Tuned) − val/loss(Zero-Shot) = {D:+.4f} | …
+EXIBIR f'Ganho em perplexidade: {ganho_pp:.1f} % (IC 95 %: {ganho_ic[0]…
+EXIBIR f'Fine-Tuned melhor em {100 * frac_melhor:.1f} % das {N} janelas… + (f' | Δ só nos quadros previstos (8 a 11): {D_prev:+.4f}' SE previstos.any…
+EXIBIR " --- Perda média por quadro da janela ---"
+EXIBIR por_quadro.set_index("Quadro").to_string()
+SE melhor_reg NÃO É NULO E abs(L_ft − float(melhor_reg)) > TOL_REGISTRO ENTÃO
+    EXIBIR f'\n[Aviso Célula 4.1] A perda do Fine-Tuned medida aqui ({L_ft:…
+FIM SE
+EXIBIR " === Diagnóstico automático (regras desta célula, não substi…"
+EXIBIR textwrap.fill(diag, 110)
+EXIBIR textwrap.fill("Regra: o IC 95 % da diferença (bootstrap por dias) é o único…", 110)
+CELL4_1_VALIDACAO ← {"val_loss_zero_shot": L_zs, "val_loss_fine_tuned": L_ft, "delta": D, "ic95": ic, "ganho_perplexidade_pct": float(ganho_pp), "gan…

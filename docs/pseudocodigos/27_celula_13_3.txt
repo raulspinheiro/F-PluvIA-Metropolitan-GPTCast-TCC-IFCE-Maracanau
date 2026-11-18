@@ -1,0 +1,197 @@
+// ===== Célula 13.3 — pseudo-código =====
+// Célula 13.3: Volume de Tokens por Etapa e por Variante — quantos tokens o Transformer do GPTCast-8x8 processou
+// no ajuste fino, na validação e nas previsões de cada variante do F-PluvIA e do Zero-Shot, e quantos tokens custa
+// prever um único quadro. Não roda nenhum modelo: usa a arquitetura do GPTCast e os registros já gravados no Drive.
+// "Token" aqui é um índice do codebook da VQGAN (um bloco de 16 x 16 pixels, ~32 km):
+// é o volume de trabalho do Transformer. Contagens conferidas no código do pacote gptcast:
+// - treino/validação: cada amostra tem 8 quadros x 64 tokens = 512; o Transformer recebe o token inicial (SOS)
+// + 511 tokens e é avaliado nos 512 tokens da sequência (shared_step);
+// - previsão: cada quadro futuro tem 64 tokens gerados um a um (predict_next_frame_indices), cada um com uma
+// passada completa do Transformer sobre SOS + 7 quadros de contexto (448 tokens) + os já gerados no quadro.
+// Não há cache de atenção (KV cache, ele evitaria processamento repetido dos mesmos tokens ): o contexto é reprocessado a cada token.
+IMPORTAR glob
+IMPORTAR json
+IMPORTAR os
+IMPORTAR matplotlib.pyplot (como plt)
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+ENV_TAG ← globals().get("ENV_TAG", "G4_RTX6000_Blackwell_95GB")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+SERIES_CACHE_DIR ← globals().get("SERIES_CACHE_DIR", "/content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+// ------------------------------------------------------------- 1. arquitetura e constantes
+N_CTX ← int(globals().get("CONTEXT_STEPS", 7))   // quadros de contexto na previsão
+N_FUT ← int(globals().get("FORECAST_STEPS", 4))   // quadros previstos (+30 a +120 min)
+BLOCK ← 512   // block_size do Transformer (8 quadros x 64 tokens)
+TOK_QUADRO ← 64   // 128 x 128 px / (16 x 16 px por token) = 8 x 8
+_gpt ← globals().get("gpt8")
+SE _gpt NÃO É NULO ENTÃO
+    TENTAR
+        BLOCK ← int(_gpt.transformer.config.block_size)
+        TOK_QUADRO ← BLOCK DIV 8
+    SE OCORRER ERRO Exception
+        (nada a fazer)
+    FIM TENTAR
+FIM SE
+TOK_AMOSTRA ← BLOCK   // tokens da sequência por amostra de treino/validação
+N_MEMBROS ← 8   // F-PluvIA-C8 (média de 8 sorteios)
+N_JANELAS_45 ← 240   // Célula 4.5: janelas da validação de 2024 sorteadas
+CTX_INI ← 1 + N_CTX × TOK_QUADRO   // SOS + contexto = 449 tokens no 1º token do quadro
+POS_QUADRO ← sum([CTX_INI + k PARA CADA k EM range(TOK_QUADRO)])   // posições processadas para gerar 1 quadro (30.752)
+GARANTIR QUE CTX_INI + TOK_QUADRO − 1 ≤ BLOCK (senão: "contexto da previsão maior que o block_size")
+FUNÇÃO _achar(padrao)
+    // Arquivo mais recente que casa com o padrão, em qualquer subpasta de RESULTS_ENV_DIR (ou None).
+    achados ← sorted(glob.glob(os.path.join(RESULTS_ENV_DIR, "**", padrao), recursive=VERDADEIRO), key=os.path.getmtime)
+    RETORNAR (achados[−1] SE achados SENÃO NULO)
+FIM FUNÇÃO
+fontes ← {}
+// ------------------------------------------------------------- 2. tamanhos das partições
+(N_TREINO, N_VAL, N_TESTE25) ← (9940, 2224, 1729)
+f ← _achar(f'resumo_particoes_{ENV_TAG}_*.csv')
+SE f ENTÃO
+    d ← pd.read_csv(f).set_index("Particao")["Sequencias"]
+    (N_TREINO, N_VAL, N_TESTE25) ← (int(d["Treino"]), int(d["Validação"]), int(d["Teste"]))
+    fontes["partições"] ← os.path.basename(f)
+FIM SE
+reg ← {}
+f ← _achar(f'log_tempos_treino_e_inferencia_{ENV_TAG}_*.json')
+SE f ENTÃO
+    reg ← json.load(open(f, encoding="utf-8"))
+    fontes["registro de treino"] ← os.path.basename(f)
+FIM SE
+LOTE ← int(reg.get("batch_size_treino", 16))
+T_AJUSTE_S ← float(reg.get("finetuning_tempo_total_s", np.nan))
+PASSOS_EPOCA ← −−N_TREINO DIV LOTE   // 9.940 / 16 -> 622 passos (o último com 4 amostras)
+FUNÇÃO _amostras_e_validacoes(metrics_csv)
+    // Amostras de treino vistas e validações completas, lidas do metrics.csv do Lightning.
+    m ← pd.read_csv(metrics_csv)
+    passos ← int(m["step"].max()) + 1
+    (epocas_completas, resto) ← divmod(passos, PASSOS_EPOCA)
+    amostras ← epocas_completas × N_TREINO + min(resto × LOTE, N_TREINO)
+    n_val ← (int(m["val/loss_epoch"].notna().sum()) SE "val/loss_epoch" EM m SENÃO 0)
+    RETORNAR (amostras, n_val, passos)
+FIM FUNÇÃO
+// ------------------------------------------------------------- 3. treino e validação
+linhas ← []
+FUNÇÃO add(etapa, modelo, variante, unidade, n, tok_unidade, gerados, obs)
+    EXECUTAR linhas.append({"Etapa": etapa, "Modelo": modelo, "Variante": variante, "Unidade": unidade, "Quantidade": int(n), "Tokens por unidade": i…
+FIM FUNÇÃO
+tag ← str(reg.get("finetuning_origem", "")).replace("treino de ", "").strip()
+principais ← [p PARA CADA p EM glob.glob(os.path.join(RESULTS_ENV_DIR, "**", "metrics.csv"), recursive=VERDADEIRO) SE "alternativo" NÃO EM p E (NÃO t…
+SE principais ENTÃO
+    (amostras, n_val, passos) ← _amostras_e_validacoes(sorted(principais)[−1])
+    fontes["curva do ajuste fino"] ← os.path.relpath(sorted(principais)[−1], RESULTS_ENV_DIR)
+SENÃO
+    (amostras, n_val, passos) ← (int(reg.get("epocas_executadas", 5)) × N_TREINO, int(reg.get("epocas_executadas", 5)), NULO)
+FIM SE
+EXECUTAR add("Ajuste fino (Célula 4)", "F-PluvIA (lr 5e-5)", "treino", "amostra de 8 quadros", amostras, TOK_AMOSTRA, obs=f'{amostras // N_TREINO} ép…
+EXECUTAR add("Ajuste fino (Célula 4)", "F-PluvIA (lr 5e-5)", "validação a cada época", "amostra de 8 quadros", n_val × N_VAL, TOK_AMOSTRA, obs=f'{n_v…
+PARA CADA p EM sorted(glob.glob(os.path.join(RESULTS_ENV_DIR, "**", "curva_treino_alternativo_*", "*", "metrics.csv"), recursive=VERDADEIRO)) FAÇA
+    (a, v, ps) ← _amostras_e_validacoes(p)
+    rodada ← os.path.basename(os.path.dirname(p))
+    EXECUTAR add("Ajuste fino suave (Célula 4.3)", "F-PluvIA suave (lr 1e-5)", "treino", "amostra de 8 quadros", a, TOK_AMOSTRA, obs=f'rodada {rodada…
+    SE v ENTÃO
+        EXECUTAR add("Ajuste fino suave (Célula 4.3)", "F-PluvIA suave (lr 1e-5)", "validação a cada ¼ de época", "amostra de 8 quadros", v × N_VAL, …
+    FIM SE
+    EXECUTAR fontes.setdefault("curvas da Célula 4.3", []).append(rodada)
+FIM PARA
+EXECUTAR add("Validação Fine-Tuned × Zero-Shot (Célula 4.1)", "F-PluvIA (lr 5e-5)", "perda nos tokens", "amostra de 8 quadros", N_VAL, TOK_AMOSTRA, o…
+EXECUTAR add("Validação Fine-Tuned × Zero-Shot (Célula 4.1)", "Zero-Shot", "perda nos tokens", "amostra de 8 quadros", N_VAL, TOK_AMOSTRA, obs="uma p…
+// ------------------------------------------------------------- 4. previsões (tokens gerados)
+TOK_JANELA ← N_FUT × TOK_QUADRO   // 4 quadros x 64 = 256 tokens gerados por janela
+(n26, n_casos26) ← (2108, 2)
+f ← _achar(f'teste_cego_2026_meses_e_produtos_{ENV_TAG}*.csv')
+SE f ENTÃO
+    n26 ← int(pd.read_csv(f)["Janelas"].sum())
+    fontes["teste cego 2026"] ← os.path.basename(f)
+FIM SE
+f ← _achar(f'teste_cego_2026_estudos_de_caso_{ENV_TAG}*.csv')
+SE f ENTÃO
+    n_casos26 ← int(pd.read_csv(f)["Caso"].nunique())
+FIM SE
+DEC_45 ← [("Padrão (T=1, sem top-k)", 1), ("top-k 50", 1), ("top-k 10", 1), ("Temperatura 0,7", 1), ("Gulosa (top-k 1)", 1), (f'Média de {N_MEMBROS} …
+PARA CADA modelo EM ("F-PluvIA (lr 5e-5)", "Zero-Shot") FAÇA
+    PARA CADA (nome, membros) EM DEC_45 FAÇA
+        EXECUTAR add("Escolha da decodificação (Célula 4.5, validação 2024)", modelo, nome, "janela (4 quadros)", N_JANELAS_45 × membros, TOK_JANELA,…
+    FIM PARA
+FIM PARA
+PREV ← [("Teste 2025 (Célula 12)", "F-PluvIA (lr 5e-5)", "F-PluvIA-A (sorteio padrão)", N_TESTE25, 1, "rodada com a decodificação padrão do pacote"),…
+PARA CADA (etapa, modelo, variante, n, membros, obs) EM PREV FAÇA
+    EXECUTAR add(etapa, modelo, variante, "janela (4 quadros)", n × membros, TOK_JANELA, gerados=VERDADEIRO, obs=obs)
+FIM PARA
+df ← pd.DataFrame(linhas)
+// ------------------------------------------------------------- 5. custo de um quadro
+vel ← {}
+f ← _achar(f'velocidade_inferencia_teste2025_{ENV_TAG}_N*_amostragem2024_me…)
+SE f ENTÃO
+    v ← pd.read_csv(f).set_index("Modelo")["Tempo_Medio_4Passos_s"]
+    vel ← {"G": v.get("GPTCast-8x8 (Fine-Tuned RMF)"), "C8": v.get("GPTCast-8x8 (Fine-Tuned RMF, média de 8)"), "ZS": v.get("GPTCast-8x8 (Zero-Shot)"…
+    fontes["tempos de previsão"] ← os.path.basename(f)
+FIM SE
+unid ← []
+PARA CADA (nome, membros, chave) EM (("F-PluvIA-A / F-PluvIA-G / Zero-Shot (1 sorteio)", 1, "G"), (f'F-PluvIA-C{N_MEMBROS} (média de {N_MEMBROS})', N…
+    t_quadro ← (vel.get(chave) / N_FUT SE vel.get(chave) SENÃO np.nan)
+    EXECUTAR unid.append({"Previsão de 1 quadro (+30 min)": nome, "Tokens gerados": TOK_QUADRO × membros, "Passadas do Transformer": TOK_QUADRO, "Con…
+FIM PARA
+df_unid ← pd.DataFrame(unid)
+tok_ajuste ← df[df["Etapa"] = "Ajuste fino (Célula 4)"]["Tokens"].sum()
+vazao_treino ← (tok_ajuste / T_AJUSTE_S SE T_AJUSTE_S = T_AJUSTE_S E T_AJUSTE_S > 0 SENÃO np.nan)
+// ------------------------------------------------------------- 6. saídas
+fmt ← FUNÇÃO(x) ↦ f'{x:,.0f}'.replace(",", ".")
+EXIBIR f'=== Volume de tokens do Transformer do GPTCast-8x8 | {ENV_LABE…
+EXIBIR f'Arquitetura: {TOK_QUADRO} tokens por quadro | block_size {BLOC…
+FUNÇÃO _bonito(d, inteiros)
+    // Cópia só para exibir, com separador de milhar (os CSV guardam os números puros).
+    d ← d.copy()
+    PARA CADA c EM inteiros FAÇA
+        d[c] ← d[c].map(fmt)
+    FIM PARA
+    RETORNAR d
+FIM FUNÇÃO
+EXIBIR " --- Previsão de um único quadro ---"
+EXIBIR _bonito(df_unid, ["Tokens gerados", "Passadas do Transformer", "Posições processadas"]).set_index("Previsão de 1 quadro (+30 min)")
+EXIBIR f'Para gerar {TOK_QUADRO} tokens, o Transformer processa {fmt(PO…
+SE vazao_treino = vazao_treino ENTÃO
+    EXIBIR f'No ajuste fino (treino + validação), a vazão foi de ~{fmt(vaza…
+FIM SE
+cols ← ["Quantidade", "Tokens por unidade", "Tokens", "Posições processadas pelo Transformer", "Observação"]
+EXIBIR " --- Por etapa e variante ---"
+USANDO pd.option_context("display.max_rows", NULO, "display.max_colwidth", 70)
+    EXIBIR _bonito(df, cols[:4]).set_index(["Etapa", "Modelo", "Variante"])[cols]
+FIM USANDO
+resumo ← df.pivot_table(index="Modelo", columns="Tipo", values="Tokens", aggfunc="sum", fill_value=0, sort=FALSO)
+resumo["Total de tokens"] ← resumo.sum(axis=1)
+resumo["Posições processadas"] ← df.groupby("Modelo", sort=FALSO)["Posições processadas pelo Transformer"].sum()
+EXIBIR " --- Por modelo (todas as etapas) ---"
+EXIBIR _bonito(resumo, list(resumo.columns))
+tot ← df["Tokens"].sum()
+EXIBIR f"Total no trabalho: {fmt(tot)} tokens ({fmt(df['Posições proces…
+EXIBIR "Fora da conta: o primeiro ajuste fino (tokenização quadro a …"
+p_det ← os.path.join(RESULTS_ENV_DIR, f'tokens_por_etapa_e_variante_{ENV_TAG}.csv')
+p_uni ← os.path.join(RESULTS_ENV_DIR, f'tokens_por_quadro_{ENV_TAG}.csv')
+EXECUTAR df.to_csv(p_det, index=FALSO)
+EXECUTAR df_unid.to_csv(p_uni, index=FALSO)
+// figura: tokens por etapa e variante (escala log), cores por modelo
+cores ← {"F-PluvIA (lr 5e-5)": "#d62728", "F-PluvIA suave (lr 1e-5)": "#ff9896", "Zero-Shot": "#ff7f0e"}
+g ← df.groupby(["Etapa", "Modelo", "Variante"], sort=FALSO)["Tokens"].sum().reset_index()
+_curto ← {"F-PluvIA (lr 5e-5)": "F-PluvIA", "F-PluvIA suave (lr 1e-5)": "F-PluvIA suave", "Zero-Shot": "Zero-Shot"}
+g["rótulo"] ← [f"{e.split(' (')[0]} | " + (v SE v.startswith("F-PluvIA") SENÃO f'{_curto.get(m, m)}, {v}') PARA CADA (e, m, v) EM zip(g["Etapa"], g["…
+(fig, ax) ← plt.subplots(figsize=(12, 0.32 × len(g) + 1.6), constrained_layout=VERDADEIRO)
+y ← np.arange(len(g))[::−1]
+EXECUTAR ax.barh(y, g["Tokens"], color=[cores.get(m, "#7f7f7f") PARA CADA m EM g["Modelo"]])
+PARA CADA (yi, t) EM zip(y, g["Tokens"]) FAÇA
+    EXECUTAR ax.text(t × 1.08, yi, fmt(t), va="center", fontsize=7.5)
+FIM PARA
+EXECUTAR ax.set_yticks(y)
+EXECUTAR ax.set_yticklabels(g["rótulo"], fontsize=8)
+EXECUTAR ax.set_xscale("log")
+EXECUTAR ax.set_xlim(left=max(1, g["Tokens"].min() / 3), right=g["Tokens"].max() × 6)
+EXECUTAR ax.set_xlabel("Tokens (escala logarítmica): lidos no treino/validação, gera…")
+EXECUTAR ax.grid(VERDADEIRO, axis="x", ls=":", alpha=0.6)
+EXECUTAR ax.legend([plt.Rectangle((0, 0), 1, 1, color=c) PARA CADA c EM cores.values()], list(cores), loc="lower right", fontsize=8)
+EXECUTAR ax.set_title(f'Volume de tokens do Transformer do GPTCast-8x8 por etapa e var…, fontweight="bold")
+p_fig ← os.path.join(RESULTS_ENV_DIR, f'painel_tokens_por_etapa_{ENV_TAG}.png')
+EXECUTAR fig.savefig(p_fig, dpi=300, bbox_inches="tight")
+EXIBIR
+CELL13_3_RESULTS ← {"por_etapa": df, "por_quadro": df_unid, "por_modelo": resumo}
+EXIBIR f'[Célula 13.3] Tabelas -> {p_det} | {p_uni}\n[Célula 13.3] Figu…

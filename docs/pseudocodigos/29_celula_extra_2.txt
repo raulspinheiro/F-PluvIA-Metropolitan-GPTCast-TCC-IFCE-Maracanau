@@ -1,0 +1,215 @@
+// ===== Célula Extra 2 — pseudo-código =====
+// Célula Extra 2: Manifesto de Integridade e Proveniência (SHA-256) — F-PluvIA Metropolitan
+// Lista, com hash SHA-256, só os artefatos do projeto (resultados, checkpoints, séries e o notebook),
+// registra o código de cada célula, as versões das bibliotecas e o hardware, e grava JSON, Markdown e
+// SHA256SUMS em docs/provenance/ (lido pela Célula de Deploy) e no Drive.
+IMPORTAR datetime
+IMPORTAR fnmatch
+IMPORTAR hashlib
+IMPORTAR importlib.metadata (como md)
+IMPORTAR json
+IMPORTAR os
+IMPORTAR platform
+IMPORTAR re
+IMPORTAR subprocess
+IMPORTAR sys
+IMPORTAR time
+IMPORTAR Path DE pathlib
+IMPORTAR torch
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+SERIES_CACHE_DIR ← globals().get("SERIES_CACHE_DIR", "/content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+CHECKPOINTS_ENV_DIR ← globals().get("CHECKPOINTS_ENV_DIR", "")
+BASE_DIR ← Path(globals().get("BASE_DIR", "/content"))
+// ------------------------------------------------------------------- 1. configuração
+// Pastas varridas (rótulo -> pasta). Nada fora delas entra no manifesto: o Drive inteiro NUNCA é lido.
+PASTAS ← {"resultados": RESULTS_ENV_DIR, "checkpoints": CHECKPOINTS_ENV_DIR, "series_2km": SERIES_CACHE_DIR, "comparativo_hardware": os.path.join(SER…
+NOTEBOOK_PATH ← globals().get("DETECTED_NB_PATH")   // opcional: .ipynb salvo no Drive
+NOTEBOOK_NAME ← "Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTI…"
+SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO   // procura o notebook salvo (Ctrl+S antes)
+    PARA CADA _c EM (Path("/content/drive/MyDrive/Colab Notebooks") / NOTEBOOK_NAME, Path("/content/drive/MyDrive") / NOTEBOOK_NAME) FAÇA
+        SE _c.is_file() ENTÃO
+            NOTEBOOK_PATH ← str(_c)
+            INTERROMPER LAÇO
+        FIM SE
+    FIM PARA
+FIM SE
+EXTENSOES ← {".csv", ".png", ".pdf", ".json", ".npz", ".ckpt", ".pt", ".pth", ".ipynb", ".html"}
+PROFUNDIDADE_MAX ← {"series_2km": 0}   // na pasta das séries, só os arquivos do topo (.npz mensais)
+IGNORAR ← ("provenance", ".ipynb_checkpoints", ".Trash", "tmp_gpm_raw", "__pycache__", "inmet")
+IGNORAR_ARQUIVOS ← ("*6_orgaos*", "*6orgaos*", "*interinstitucional*", "inmet_*", "*pluviometros_inmet*")   // antiga Célula 13.1 (órgãos / INMET), r…
+INCLUIR_CHECKPOINTS ← VERDADEIRO   // .ckpt têm ~1–4 GB; o hash fica em cache
+META ← {"titulo": "F-PluvIA Metropolitan: Adaptação Cross-Sensor via Fine-Tunin…", "formato": "Trabalho de Conclusão de Curso (TCC) — Artigo Científi…
+// Título: confira com o registrado na coordenação. A comparação com órgãos foi removida do projeto, por isso
+// "e Benchmark Multi-Institucional" saiu daqui.
+t_ini ← time.perf_counter()
+agora_utc ← datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+agora_brt ← agora_utc.astimezone(datetime.timezone(datetime.timedelta(hours=−3)))
+carimbo ← agora_brt.strftime("%Y%m%d_%H%M%S")
+DEST ← BASE_DIR / "docs" / "provenance"
+EXECUTAR DEST.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+DEST_DRIVE ← Path(RESULTS_ENV_DIR) / "provenance"
+EXECUTAR DEST_DRIVE.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+// ------------------------------------------------- 2. hashes (com cache por tamanho e data)
+CACHE_HASH ← DEST_DRIVE / "cache_sha256.json"
+TENTAR
+    _cache ← (json.loads(CACHE_HASH.read_text()) SE CACHE_HASH.exists() SENÃO {})
+SE OCORRER ERRO (OSError, json.JSONDecodeError)
+    _cache ← {}
+FIM TENTAR
+FUNÇÃO sha256(p)
+    st ← p.stat()
+    chave ← f'{p}|{st.st_size}|{int(st.st_mtime)}'
+    SE chave EM _cache ENTÃO
+        RETORNAR _cache[chave]
+    FIM SE
+    h ← hashlib.sha256()
+    USANDO open(p, "rb") COMO f
+        PARA CADA bloco EM iter(FUNÇÃO() ↦ f.read(8 << 20), b'') FAÇA
+            EXECUTAR h.update(bloco)
+        FIM PARA
+    FIM USANDO
+    _cache[chave] ← h.hexdigest()
+    RETORNAR _cache[chave]
+FIM FUNÇÃO
+(artefatos, falhas) ← ([], [])
+PARA CADA (rotulo, pasta) EM PASTAS.items() FAÇA
+    SE NÃO pasta OU NÃO os.path.isdir(pasta) ENTÃO
+        PASSAR À PRÓXIMA ITERAÇÃO
+    FIM SE
+    SE rotulo = "checkpoints" E NÃO INCLUIR_CHECKPOINTS ENTÃO
+        PASSAR À PRÓXIMA ITERAÇÃO
+    FIM SE
+    raiz ← Path(pasta)
+    PARA CADA (dirpath, dirnames, files) EM os.walk(raiz) FAÇA
+        rel_dir ← Path(dirpath).relative_to(raiz)
+        dirnames[:] ← sorted([d PARA CADA d EM dirnames SE d NÃO EM IGNORAR E NÃO d.startswith(".") E len(rel_dir.parts) < PROFUNDIDADE_MAX.get(rotul…
+        PARA CADA nome EM sorted(files) FAÇA
+            p ← Path(dirpath) / nome
+            SE nome.startswith(".") OU p.suffix.lower() NÃO EM EXTENSOES OU nome = CACHE_HASH.name OU any([fnmatch.fnmatch(nome, pat) PARA CADA pat E…
+                PASSAR À PRÓXIMA ITERAÇÃO
+            FIM SE
+            rel ← f'{rotulo}/{p.relative_to(raiz).as_posix()}'   // caminho relativo: nada do Drive pessoal
+            TENTAR
+                EXECUTAR artefatos.append({"arquivo": rel, "bytes": p.stat().st_size, "sha256": sha256(p)})
+            SE OCORRER ERRO OSError (chamado e)
+                EXECUTAR falhas.append({"arquivo": rel, "erro": f'{type(e).__name__}: {e.strerror or e}'})
+            FIM TENTAR
+        FIM PARA
+    FIM PARA
+FIM PARA
+SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    p ← Path(NOTEBOOK_PATH)
+    EXECUTAR artefatos.append({"arquivo": f'notebook/{p.name}', "bytes": p.stat().st_size, "sha256": sha256(p)})
+FIM SE
+EXECUTAR artefatos.sort(key=FUNÇÃO(a) ↦ a["arquivo"])
+TENTAR
+    EXECUTAR CACHE_HASH.write_text(json.dumps(_cache))
+SE OCORRER ERRO OSError
+    (nada a fazer)
+FIM TENTAR
+// Hash raiz: depende só da lista (arquivo, sha256). Qualquer pessoa com os mesmos arquivos chega ao mesmo valor.
+raiz_hash ← hashlib.sha256("".join([f"{a['sha256']}  {a['arquivo']}\n" PARA CADA a EM artefatos]).encode()).hexdigest()
+// ------------------------------------------------------ 3. código das células executadas
+FUNÇÃO _oculta(s)
+    s ← re.sub("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s*=\s*…", "\1\2[OCULTO]\2", s, flags=re.I)
+    RETORNAR re.sub("[\w.+-]+@[\w-]+(?:\.[\w-]+)+", "[e-mail oculto]", s)
+FIM FUNÇÃO
+// Código de todas as células, lido do notebook salvo; sem ele, das células executadas nesta sessão.
+(codigo, fontes, origem_codigo) ← ({}, [], "notebook salvo")
+SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    TENTAR
+        fontes ← ["".join(c.get("source", [])) PARA CADA c EM json.loads(Path(NOTEBOOK_PATH).read_text(encoding="utf-8"))["cells"] SE c.get("cell_typ…
+    SE OCORRER ERRO Exception
+        fontes ← []
+    FIM TENTAR
+FIM SE
+SE NÃO fontes ENTÃO
+    ip ← (get_ipython() SE "get_ipython" EM globals() SENÃO NULO)
+    (fontes, origem_codigo) ← ((list(ip.user_ns.get("_ih", [])) SE ip NÃO É NULO SENÃO []), "histórico da sessão")
+FIM SE
+PARA CADA (i, src) EM enumerate(fontes) FAÇA
+    SE isinstance(src, str) E src.strip() ENTÃO
+        m ← re.search("^#\s*(?:@title\s*#\s*)?(C[ée]lula\s+[^:\n]+)", src, re.M)
+        SE m ENTÃO
+            codigo[m.group(1).strip()] ← {"posicao": i, "linhas": src.count(" ") + 1, "sha256_codigo": hashlib.sha256(_oculta(src).encode()).hexdiges…
+        FIM SE
+    FIM SE
+FIM PARA
+// --------------------------------------------------- 4. ambiente, bibliotecas e hardware
+FUNÇÃO _cmd(c)
+    TENTAR
+        RETORNAR subprocess.check_output(c, stderr=subprocess.DEVNULL, text=VERDADEIRO, timeout=20).strip()
+    SE OCORRER ERRO Exception
+        RETORNAR NULO
+    FIM TENTAR
+FIM FUNÇÃO
+FUNÇÃO _versao(pkg)
+    TENTAR
+        RETORNAR md.version(pkg)
+    SE OCORRER ERRO md.PackageNotFoundError
+        RETORNAR NULO
+    FIM TENTAR
+FIM FUNÇÃO
+libs ← [k: _versao(k) PARA CADA k EM ("gptcast", "gpm-api", "pysteps", "torch", "lightning", "pytorch-lightning", "numpy", "pandas", "xarray", "sciki…
+libs ← [k: v PARA CADA (k, v) EM libs.items() SE v]
+gpu ← {"disponivel": torch.cuda.is_available()}
+SE torch.cuda.is_available() ENTÃO
+    pr ← torch.cuda.get_device_properties(0)
+    EXECUTAR gpu.update({"modelo": pr.name, "vram_total_gb": round(pr.total_memory / 2 ^ 30, 1), "pico_vram_alocada_nesta_sessao_gb": round(torch.cud…
+FIM SE
+execucao ← {}
+PARA CADA (nome, var) EM (("digest_transformer_gpt8", NULO), ("run_id_celula12", "RUN_ID"), ("checkpoint", "best_ckpt_path")) FAÇA
+    SE var E var EM globals() ENTÃO
+        v ← globals()[var]
+        execucao[nome] ← (os.path.basename(str(v)) SE nome = "checkpoint" SENÃO str(v))
+    FIM SE
+FIM PARA
+SE "gpt8" EM globals() ENTÃO
+    h ← hashlib.sha256()
+    PARA CADA (k, v) EM sorted(gpt8.state_dict().items()) FAÇA
+        SE k.startswith("transformer.") ENTÃO
+            EXECUTAR h.update(k.encode())
+            EXECUTAR h.update(v.detach().float().cpu().numpy().tobytes())
+        FIM SE
+    FIM PARA
+    execucao["digest_transformer_gpt8"] ← h.hexdigest()[:12]
+FIM SE
+reg ← (os.path.join(CHECKPOINTS_ENV_DIR, f'registro_treino_{ENV_TAG}.json') SE CHECKPOINTS_ENV_DIR SENÃO "")
+SE reg E os.path.isfile(reg) ENTÃO
+    TENTAR
+        execucao["registro_treino"] ← json.loads(Path(reg).read_text(encoding="utf-8"))
+    SE OCORRER ERRO (OSError, json.JSONDecodeError)
+        (nada a fazer)
+    FIM TENTAR
+FIM SE
+manifesto ← {"tipo": "Manifesto de integridade e proveniência (SHA-256)", "o_que_comprova": "Que os arquivos listados não mudaram desde a emissão: ba…
+// ------------------------------------------------------------------ 5. arquivos de saída
+gpu_slug ← re.sub("[^A-Za-z0-9]+", "_", gpu.get("modelo", "CPU")).strip("_")
+base ← f'manifesto_proveniencia_{gpu_slug}_{carimbo}'
+(p_json, p_md, p_sums) ← (DEST / f'{base}.json', DEST / f'{base}.md', DEST / f'SHA256SUMS_{carimbo}.txt')
+EXECUTAR p_json.write_text(json.dumps(manifesto, indent=2, ensure_ascii=FALSO), encoding="utf-8")
+EXECUTAR p_sums.write_text("".join([f"{a['sha256']}  {a['arquivo']}\n" PARA CADA a EM artefatos]), encoding="utf-8")
+por_pasta ← {}
+PARA CADA a EM artefatos FAÇA
+    k ← a["arquivo"].split("/", 1)[0]
+    (n, b) ← por_pasta.get(k, (0, 0))
+    por_pasta[k] ← (n + 1, b + a["bytes"])
+FIM PARA
+linhas_md ← [f"# Manifesto de integridade e proveniência — {META['titulo'].sp…, "", f'**Emissão:** {agora_brt:%d/%m/%Y %H:%M:%S} (Fortaleza) · {agor……
+SE falhas ENTÃO
+    linhas_md ← linhas_md + ["", f'**{len(falhas)} arquivo(s) não puderam ser lidos** (listados n…]
+FIM SE
+EXECUTAR p_md.write_text(" ".join(linhas_md) + " ", encoding="utf-8")
+PARA CADA p EM (p_json, p_md, p_sums) FAÇA
+    EXECUTAR DEST_DRIVE / p.name.write_bytes(p.read_bytes())
+FIM PARA
+(LAST_JSON_CERT, LAST_MD_CERT, LAST_SHA256SUMS) ← (str(p_json), str(p_md), str(p_sums))
+EXIBIR f"[Célula Extra 2] {len(artefatos)} artefatos ({sum((a['bytes'] …
+EXIBIR f"[Célula Extra 2] Código de {len(codigo)} células registrado ({…
+EXIBIR f'[Célula Extra 2] Hash raiz: {raiz_hash}'
+SE falhas ENTÃO
+    EXIBIR f'[Célula Extra 2] Atenção: {len(falhas)} arquivo(s) não lidos (…
+FIM SE
+EXIBIR f'[Célula Extra 2] Arquivos -> {DEST} (para o Deploy) e {DEST_DR…

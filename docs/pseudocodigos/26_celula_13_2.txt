@@ -1,0 +1,243 @@
+// ===== Célula 13.2 — pseudo-código =====
+// Célula 13.2: Métricas de Classificação por Nível de Alerta no TESTE CEGO DE 2026 (Célula 13.1), por pixel e por
+// MUNICÍPIO da RMF, lado a lado com o teste de 2025 (Célula 12) — o equivalente da Célula 12.1 para 2026.
+// Também sorteia os dias de novo, mil vezes, para ver se cada vantagem no F1 é de verdade ou só sorte (IC de 95 %).
+// Não roda inferência: usa CELL13_1_RESULTS e CELL12_FULL_2025_RESULTS já em memória.
+IMPORTAR os
+IMPORTAR matplotlib.pyplot (como plt)
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR Path (como MplPath) DE matplotlib.path
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+OUT_DIR ← os.path.join(RESULTS_ENV_DIR, "teste_cego_2026")
+EXECUTAR os.makedirs(OUT_DIR, exist_ok=VERDADEIRO)
+ALERT_LEVELS ← {0.5: "Atenção (≥ 0,5 mm/h)", 1.0: "Alerta (≥ 1,0 mm/h)", 5.0: "Severo (≥ 5,0 mm/h)"}
+LEADS ← [30 × s + 1 PARA CADA s EM range(FORECAST_STEPS)]
+N_BOOT ← 1000   // reamostragens de dias inteiros
+SEED ← int(globals().get("SEED", 42))
+SE "CELL13_1_RESULTS" NÃO EM globals() ENTÃO
+    LANÇAR ERRO RuntimeError("Rode a Célula 13.1 antes desta (nesta mesma sessão).")
+FIM SE
+R13 ← CELL13_1_RESULTS
+R12 ← globals().get("CELL12_FULL_2025_RESULTS")
+SE R13["parcial"] ENTÃO
+    EXIBIR f"[Aviso Célula 13.2] A Célula 13.1 terminou PARCIAL ({R13['jane…
+FIM SE
+// --------------------------------------------- 1. métodos, rótulos e sufixo (os mesmos da Célula 13.1)
+_esc ← R13.get("amostragem", "padrao") = "escolhida_2024"
+NOMES ← {"ft": f"GPTCast-8x8 (Fine-Tuned RMF, {('gulosa' if _esc else 'sorteio …, "ft_media": "GPTCast-8x8 (Fine-Tuned RMF, média de 8)", "zs": f"GPT…
+NOMES ← [k: v PARA CADA (k, v) EM NOMES.items() SE f'{k}_rain' EM R13]
+SUF ← ("" SE NÃO _esc SENÃO ("_amostragem2024_media8" SE "ft_media" EM NOMES SENÃO "_amostragem2024"))
+DECOD_TXT ← ("decodificação escolhida na validação de 2024" SE _esc SENÃO "decodificação padrão do forecast()")
+N26 ← int(R13["janelas_prontas"])
+PROD26 ← ", ".join(sorted(set(np.asarray(R13["produto"]).tolist())))
+conjuntos ← {f'2026 ({N26} janelas, {PROD26})': (R13["obs_rain"], [k: R13[f'{k}_rain'] PARA CADA k EM NOMES])}
+datas ← {list(conjuntos)[0]: np.asarray(R13["timestamps_t0"])}
+SE R12 NÃO É NULO ENTÃO
+    SE R12.get("amostragem", "padrao") ≠ R13.get("amostragem", "padrao") ENTÃO
+        EXIBIR "[Aviso Célula 13.2] Células 12 e 13.1 com decodificações dif…"
+    FIM SE
+    m25 ← np.isin(pd.to_datetime(np.asarray(R12["timestamps_t0"])).month, [2, 3, 4, 5])
+    conjuntos[f'2025 ({int(m25.sum())} janelas, IMERG-FR)'] ← (R12["obs_rain"][m25], [k: R12[f'{k}_rain'][m25] PARA CADA k EM NOMES SE f'{k}_rain' EM…
+    datas[list(conjuntos)[1]] ← np.asarray(R12["timestamps_t0"])[m25]
+SENÃO
+    EXIBIR "[Célula 13.2] CELL12_FULL_2025_RESULTS ausente: só 2026 (rod…"
+FIM SE
+(ROTULO_2026, ROTULO_2025) ← (list(conjuntos)[0], (list(conjuntos)[1] SE len(conjuntos) > 1 SENÃO NULO))
+FUNÇÃO classification_scores(tp, fp, fn, tn)
+    // Métricas em %; NaN quando o denominador é zero (ex.: precisão sem nenhum alerta emitido).
+    FUNÇÃO pct(a, b)
+        RETORNAR (100.0 × a / b SE b SENÃO np.nan)
+    FIM FUNÇÃO
+    (ppv, pod) ← (pct(tp, tp + fp), pct(tp, tp + fn))
+    RETORNAR {"Acurácia [%]": pct(tp + tn, tp + fp + fn + tn), "Precisão / PPV [%]": ppv, "Recall / POD [%]": pod, "F1 [%]": (2 × ppv × pod / ppv + p…
+FIM FUNÇÃO
+FUNÇÃO _counts(ob, pb)
+    RETORNAR (float(np.sum(ob & pb)), float(np.sum(~ob & pb)), float(np.sum(ob & ~pb)), float(np.sum(~ob & ~pb)))
+FIM FUNÇÃO
+// ------------------------------------------------ 2. máscaras dos municípios na malha de 2 km
+mun_masks ← globals().get("mun_masks") OU {}
+SE NÃO mun_masks E globals().get("gdf_rmf") NÃO É NULO ENTÃO   // a Célula 12.1 pode não ter rodado nesta sessão
+    _grade ← globals().get("md_rmf") OU adaptee
+    (lon_g, lat_g) ← np.meshgrid(_grade.target_lons, _grade.target_lats)
+    pts ← np.column_stack([lon_g.ravel(), lat_g.ravel()])
+    PARA CADA (_, r) EM gdf_rmf.iterrows() FAÇA
+        geom ← r.geometry
+        polys ← (list(geom.geoms) SE geom.geom_type = "MultiPolygon" SENÃO [geom])
+        m ← np.zeros(pts.shape[0], bool)
+        PARA CADA pg EM polys FAÇA
+            m ← m | MplPath(np.asarray(pg.exterior.coords)).contains_points(pts)
+        FIM PARA
+        SE m.sum() ≥ 4 ENTÃO   // municípios com ao menos 4 pixels de 2 km (16 km²)
+            mun_masks[r["name"]] ← m.reshape(lon_g.shape)
+        FIM SE
+    FIM PARA
+FIM SE
+SE mun_masks ENTÃO
+    EXIBIR f'[Célula 13.2] {len(mun_masks)} municípios da RMF com máscara n…
+SENÃO
+    EXIBIR "[Aviso Célula 13.2] Limites municipais indisponíveis (rode a…"
+FIM SE
+FUNÇÃO municipal_means(rain_4d)
+    // (N, passos, H, W) -> (N, passos, M): chuva média na área de cada município.
+    RETORNAR np.stack([rain_4d[(Ellipsis, m)].mean(axis=−1) PARA CADA m EM mun_masks.values()], axis=−1)
+FIM FUNÇÃO
+// ---------------------------------------------------------------- 3. tabelas
+rows ← []
+unidades ← (["pixel", "município"] SE mun_masks SENÃO ["pixel"])
+mun_cache ← {}   // médias municipais, reaproveitadas no bootstrap
+PARA CADA (conj, (obs, preds)) EM conjuntos.items() FAÇA
+    SE mun_masks ENTÃO
+        mun_cache[conj] ← (municipal_means(obs), [k: municipal_means(P) PARA CADA (k, P) EM preds.items()])
+    FIM SE
+    PARA CADA unidade EM unidades FAÇA
+        o_src ← (obs SE unidade = "pixel" SENÃO mun_cache[conj][0])
+        PARA CADA (k, P) EM preds.items() FAÇA
+            p_src ← (P SE unidade = "pixel" SENÃO mun_cache[conj][1][k])
+            PARA CADA (thr, nivel) EM ALERT_LEVELS.items() FAÇA
+                PARA CADA (s, lead) EM enumerate(LEADS + ["todos"]) FAÇA
+                    sel ← (slice(NULO) SE lead = "todos" SENÃO s)
+                    EXECUTAR rows.append({"Conjunto": conj, "Unidade": unidade, "Nível de alerta": nivel, "Modelo": NOMES[k], "Lead Time": ("média +3…
+                FIM PARA
+            FIM PARA
+        FIM PARA
+    FIM PARA
+FIM PARA
+df_cls ← pd.DataFrame(rows)
+cls_csv ← os.path.join(OUT_DIR, f'fpluvia_metricas_classificacao_teste_cego_2026_{ENV_TAG}_N{N26…)
+EXECUTAR df_cls.to_csv(cls_csv, index=FALSO)
+media ← df_cls[df_cls["Lead Time"] = "média +30 a +120"]
+cols ← ["Unidade", "Nível de alerta", "Modelo", "F1 [%]", "CSI / IoU [%]", "Precisão / PPV [%]", "Recall / POD [%]", "FAR [%]", "Acurácia [%]", "Acur…
+EXIBIR f'=== Classificação por nível de alerta — {ROTULO_2026}, média d…
+EXIBIR "A acurácia por pixel fica perto de 100% até para quem nunca …"
+USANDO pd.option_context("display.max_rows", NULO)
+    EXIBIR media[media["Conjunto"] = ROTULO_2026][cols].set_index(["Unidade", "Nível de alerta", "Modelo"])
+FIM USANDO
+SE ROTULO_2025 ENTÃO   // F1 por município: 2025 x 2026 lado a lado, com a diferença
+    comp ← media[media["Unidade"] = unidades[−1]].pivot_table(index=["Nível de alerta", "Modelo"], columns="Conjunto", values="F1 [%]", sort=FALSO, d…
+    comp ← comp[[ROTULO_2025, ROTULO_2026]]
+    comp["Δ F1 (2026 − 2025)"] ← comp[ROTULO_2026] − comp[ROTULO_2025]
+    comp["Posição em 2026"] ← comp.groupby(level=0)[ROTULO_2026].rank(ascending=FALSO, method="min").astype("Int64")
+    EXIBIR f'\n=== F1 [%] por {unidades[-1]}: 2025 x 2026, média de +30 a +…
+    USANDO pd.option_context("display.max_rows", NULO)
+        EXIBIR comp.round(1)
+    FIM USANDO
+FIM SE
+// ------------------------------------------- 4. IC de 95 % do F1 (bootstrap por dias inteiros)
+// As janelas de um mesmo dia pertencem ao mesmo evento de chuva e não são independentes: reamostra-se o dia
+// inteiro. As mesmas reamostragens valem para todos os métodos (comparação pareada).
+FUNÇÃO bootstrap_f1(o, preds, ts)
+    // o, preds[k]: (N, passos, ...). Devolve {(k, thr): array N_BOOT de F1 [%]} e a estimativa pontual.
+    (_, inv) ← np.unique(pd.to_datetime(ts).normalize().values, return_inverse=VERDADEIRO)
+    n_dias ← inv.max() + 1
+    amostras ← np.random.default_rng(SEED).integers(0, n_dias, (N_BOOT, n_dias))
+    (est, pontual) ← ({}, {})
+    PARA CADA thr EM ALERT_LEVELS FAÇA
+        ob ← o ≥ thr.reshape(len(o), −1)
+        PARA CADA (k, P) EM preds.items() FAÇA
+            pb ← P ≥ thr.reshape(len(P), −1)
+            por_dia ← [np.bincount(inv, x.sum(1), n_dias) PARA CADA x EM (ob & pb, ~ob & pb, ob & ~pb)]
+            (tp, fp, fn) ← [c[amostras].sum(1) PARA CADA c EM por_dia]
+            est[(k, thr)] ← 100 × 2 × tp / np.maximum(2 × tp + fp + fn, 1)
+            (t, f, m) ← [c.sum() PARA CADA c EM por_dia]
+            pontual[(k, thr)] ← 100 × 2 × t / max(2 × t + f + m, 1)
+        FIM PARA
+    FIM PARA
+    RETORNAR (est, pontual, n_dias)
+FIM FUNÇÃO
+unidade_boot ← unidades[−1]
+linhas_boot ← []
+PARA CADA (conj, (obs, preds)) EM conjuntos.items() FAÇA
+    (o_b, p_b) ← (mun_cache[conj] SE unidade_boot = "município" SENÃO (obs, preds))
+    (est, pontual, n_dias) ← bootstrap_f1(o_b, p_b, datas[conj])
+    PARA CADA (thr, nivel) EM ALERT_LEVELS.items() FAÇA
+        PARA CADA k EM p_b FAÇA
+            (lo, hi) ← np.percentile(est[(k, thr)], [2.5, 97.5])
+            linha ← {"Conjunto": conj, "Nível de alerta": nivel, "Modelo": NOMES[k], "Dias": n_dias, "F1 [%]": round(pontual[(k, thr)], 1), "F1 IC95 …
+            SE k ≠ "ft" ENTÃO
+                d ← est[("ft", thr)] − est[(k, thr)]
+                (dlo, dhi) ← np.percentile(d, [2.5, 97.5])
+                linha["ΔF1 (FT-G − método) IC95"] ← f'{dlo:+.1f} – {dhi:+.1f}'
+                linha["FT-G em relação ao método"] ← ("melhor" SE dlo > 0 SENÃO ("pior" SE dhi < 0 SENÃO "empate técnico"))
+            FIM SE
+            EXECUTAR linhas_boot.append(linha)
+        FIM PARA
+    FIM PARA
+FIM PARA
+df_boot ← pd.DataFrame(linhas_boot)
+boot_csv ← os.path.join(OUT_DIR, f"fpluvia_f1_{unidade_boot.replace('í', 'i')}_bootstrap_dias_202…)
+EXECUTAR df_boot.drop(columns=["_lo", "_hi"]).to_csv(boot_csv, index=FALSO)
+EXIBIR f'\n=== F1 por {unidade_boot} com IC de 95 % (bootstrap por dias…
+EXIBIR ""melhor"/"pior": o IC da diferença não cruza zero; "empate t…"
+USANDO pd.option_context("display.max_rows", NULO, "display.max_colwidth", NULO)
+    EXIBIR df_boot.drop(columns=["_lo", "_hi"]).fillna("—").set_index(["Conjunto", "Nível de alerta", "Modelo"])
+FIM USANDO
+// ---------------------------------------------------------------- 5. figuras
+styles ← {"ft": ("#d62728", "o", "-"), "ft_media": ("#9467bd", "P", "-."), "zs": ("#ff7f0e", "v", "--"), "linda": ("#1f77b4", "^", "-"), "lk": ("#2ca…
+unidade_plot ← unidades[−1]
+// 4a. o mesmo painel da Célula 12.1, agora para 2026 (Atenção, por horizonte)
+panels ← [("Precisão / PPV [%]", "Precisão (↑)"), ("Recall / POD [%]", "Recall / POD (↑)"), ("F1 [%]", "F1 (↑)"), ("FAR [%]", "FAR (↓)")]
+(fig, axes) ← plt.subplots(1, 4, figsize=(20, 5.6), constrained_layout=VERDADEIRO)
+base ← df_cls[df_cls["Conjunto"] = ROTULO_2026 & df_cls["Unidade"] = unidade_plot & df_cls["Nível de alerta"] = ALERT_LEVELS[0.5] & df_cls["Lead Time…
+PARA CADA (ax, (col, title)) EM zip(axes, panels) FAÇA
+    PARA CADA (k, nome) EM NOMES.items() FAÇA
+        sub ← base[base["Modelo"] = nome]
+        (c, mk, ls) ← styles[k]
+        EXECUTAR ax.plot(LEADS, sub[col].values, color=c, marker=mk, ls=ls, lw=2, label=nome)
+    FIM PARA
+    EXECUTAR ax.set_title(title, fontweight="bold")
+    EXECUTAR ax.set_xlabel("Horizonte (min)")
+    EXECUTAR ax.set_ylabel("%")
+    EXECUTAR ax.set_xticks(LEADS)
+    EXECUTAR ax.grid(VERDADEIRO, ls=":", alpha=0.55)
+FIM PARA
+(h, l) ← axes[0].get_legend_handles_labels()
+EXECUTAR fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, −0.12), ncol=3, frameon=FALSO, fontsize=9)
+EXECUTAR fig.suptitle(f'Classificação de alerta ≥ 0,5 mm/h por {unidade_plot} — teste …, fontsize=12, fontweight="bold")
+png_h ← os.path.join(OUT_DIR, f'metricas_classificacao_teste_cego_2026_por_horizonte_{ENV_TAG}…)
+EXECUTAR fig.savefig(png_h, dpi=300, bbox_inches="tight")
+EXIBIR
+// 4b. visão geral: F1 por nível de alerta, 2025 (claro) x 2026 (escuro), um painel por nível
+SE ROTULO_2025 ENTÃO
+    (fig, axes) ← plt.subplots(1, 3, figsize=(20, 5.6), constrained_layout=VERDADEIRO, sharey=VERDADEIRO)
+    nomes ← list(NOMES.values())
+    CURTO ← {"ft": ("F-PluvIA-G" SE _esc SENÃO "F-PluvIA-A"), "ft_media": "F-PluvIA-C8", "zs": "Zero-Shot", "linda": "LINDA", "lk": "LK", "pers": "Pe…
+    xs ← np.arange(len(nomes))
+    PARA CADA (ax, nivel) EM zip(axes, ALERT_LEVELS.values()) FAÇA
+        SE nivel NÃO EM comp.index.get_level_values(0) ENTÃO
+            EXECUTAR ax.set_title(f'F1 — {nivel} (sem casos)', fontweight="bold")
+            PASSAR À PRÓXIMA ITERAÇÃO
+        FIM SE
+        sub ← comp.loc[nivel].reindex(nomes)
+        cores ← [styles[k][0] PARA CADA k EM NOMES]
+        FUNÇÃO _err(conj)   // barras de erro = IC de 95 % do bootstrap por dias
+            g ← df_boot[df_boot["Conjunto"] = conj & df_boot["Nível de alerta"] = nivel].set_index("Modelo").reindex(nomes)
+            f1 ← sub[conj].values
+            RETORNAR np.vstack([np.clip(f1 − g["_lo"].values, 0, NULO), np.clip(g["_hi"].values − f1, 0, NULO)])
+        FIM FUNÇÃO
+        eb ← {"ecolor": "black", "capsize": 3, "elinewidth": 0.9}
+        b25 ← ax.bar(xs − 0.2, sub[ROTULO_2025], 0.4, color=cores, alpha=0.35, edgecolor=cores, yerr=(_err(ROTULO_2025) SE unidade_boot = unidade_plo…
+        b26 ← ax.bar(xs + 0.2, sub[ROTULO_2026], 0.4, color=cores, edgecolor="black", lw=0.6, yerr=(_err(ROTULO_2026) SE unidade_boot = unidade_plot …
+        PARA CADA (b, v) EM zip(b26, sub[ROTULO_2026]) FAÇA
+            SE np.isfinite(v) ENTÃO
+                EXECUTAR ax.text(b.get_x() + b.get_width() / 2, v + 3.5, f'{v:.1f}', ha="center", fontsize=8)
+            FIM SE
+        FIM PARA
+        EXECUTAR ax.set_title(f'F1 — {nivel}', fontweight="bold")
+        EXECUTAR ax.set_xticks(xs)
+        EXECUTAR ax.set_xticklabels([CURTO[k] PARA CADA k EM NOMES], fontsize=9)
+        EXECUTAR ax.grid(VERDADEIRO, axis="y", ls=":", alpha=0.55)
+    FIM PARA
+    EXECUTAR axes[0].set_ylabel(f'F1 por {unidade_plot} [%] (média +30 a +120 min)')
+    EXECUTAR fig.legend([plt.Rectangle((0, 0), 1, 1, color="gray", alpha=0.35), plt.Rectangle((0, 0), 1, 1, color="gray", ec="black")], [ROTULO_2025 …
+    EXECUTAR fig.suptitle(f'Alertas por {unidade_plot}: teste 2025 x teste cego 2026 (barr…, fontsize=12.5, fontweight="bold")
+    png_n ← os.path.join(OUT_DIR, f'f1_alertas_2025_vs_2026_{ENV_TAG}{SUF}.png')
+    EXECUTAR fig.savefig(png_n, dpi=300, bbox_inches="tight")
+    EXIBIR
+    EXIBIR f'[Célula 13.2] Visão geral -> {png_n}'
+FIM SE
+CELL13_2_RESULTS ← {"classificacao": df_cls, "f1_2025_vs_2026": (comp SE ROTULO_2025 SENÃO NULO), "f1_bootstrap": df_boot.drop(columns=["_lo", "_hi"]…
+EXIBIR f'[Célula 13.2] IC do F1 -> {boot_csv}'
+EXIBIR f'[Célula 13.2] Tabela -> {cls_csv}\n[Célula 13.2] Painel por ho…

@@ -1,0 +1,118 @@
+// ===== Célula (Limpeza de Saídas Obsoletas) — pseudo-código =====
+// Célula (Limpeza de Saídas Obsoletas): arquiva no Drive e remove do repositório público as 38 saídas de versões
+// anteriores do projeto (antes do checkpoint atual 20261116T2123Z): avaliação antiga de 30 janelas, comparação com
+// órgãos/instituições (célula removida), versões antigas do teste cego de 2026 e diagnósticos de 11/11/2026.
+// Nada é apagado do Drive: os arquivos vão para arquivo_versoes_anteriores_<ENV_TAG>, fora da pasta de resultados,
+// e deixam de entrar no Deploy, no Backup e no manifesto SHA-256.
+IMPORTAR base64
+IMPORTAR datetime
+IMPORTAR os
+IMPORTAR shutil
+IMPORTAR subprocess
+IMPORTAR Path DE pathlib
+IMPORTAR pandas (como pd)
+ENV_TAG ← globals().get("ENV_TAG", "G4_RTX6000_Blackwell_95GB")
+SERIES_CACHE_DIR ← globals().get("SERIES_CACHE_DIR", "/content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km")
+RESULTS_ENV_DIR ← Path(globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}')))
+// ------------------------------------------------------------------- 1. configuração
+SO_LISTAR ← FALSO   // 1ª execução: só mostra o que seria feito. Confira e rode de novo com False.
+LIMPAR_GITHUB ← VERDADEIRO   // também remove os mesmos arquivos do repositório público (um commit)
+REPO_URL ← "https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCa…"
+GIT_USER_NAME ← "raulspinheiro"
+GIT_USER_EMAIL ← "raulspinheiro@users.noreply.github.com"
+ARQUIVO_DIR ← Path(SERIES_CACHE_DIR) / f'arquivo_versoes_anteriores_{ENV_TAG}'
+CORTE_UTC ← datetime.datetime(2026, 11, 16, 21, 23)   // treino do checkpoint ativo; arquivo mais novo que isso não é tocado
+OBSOLETOS ← [n.format(ENV=ENV_TAG) PARA CADA n EM ("benchmark_agregado_teste2025_imerg_fr_2km_{ENV}_N30.csv", "velocidade_inferencia_teste2025_{ENV}_…
+// avaliação antiga com 30 janelas (substituída pela Célula 12 com 1.729 janelas)
+// comparação com órgãos/instituições (célula removida do projeto; números não verificados)
+// versões antigas do teste cego de 2026 (antes da Célula 13.1 reformulada)
+// estudo de caso e diagnósticos de versões anteriores (substituídos pelas Células 5 a 11 atuais)
+GARANTIR QUE len(OBSOLETOS) = len(set(OBSOLETOS)) = 38 (senão: "lista de obsoletos alterada")
+GARANTIR QUE NÃO any(["_amostragem2024" EM n PARA CADA n EM OBSOLETOS]) (senão: "a lista não pode conter resultados da execução final")
+ALVO ← set(OBSOLETOS)
+EXIBIR f"[Limpeza] Modo: {('SÓ LISTAR (nada será alterado)' if SO_LISTA…
+// ------------------------------------------------- 2. Drive: localizar e arquivar
+(achados, pulados) ← ([], [])
+SE RESULTS_ENV_DIR.is_dir() ENTÃO
+    PARA CADA p EM sorted(RESULTS_ENV_DIR.rglob("*")) FAÇA
+        SE p.is_file() E p.name EM ALVO ENTÃO
+            mod ← datetime.datetime.fromtimestamp(p.stat().st_mtime, datetime.timezone.utc).replace(tzinfo=NULO)
+            EXECUTAR (achados SE mod < CORTE_UTC SENÃO pulados).append((p, mod))
+        FIM SE
+    FIM PARA
+SENÃO
+    EXIBIR f'[Aviso] Pasta de resultados não encontrada: {RESULTS_ENV_DIR} …
+FIM SE
+EXIBIR f'[1/3] Drive: {len(achados)} de {len(OBSOLETOS)} obsoletos enco… + (f'; {len(pulados)} com data posterior ao checkpoint atual, manti… SE pula…
+PARA CADA (p, mod) EM pulados FAÇA
+    EXIBIR f'      mantido (mais novo que o corte): {p.relative_to(RESULTS_…
+FIM PARA
+registro ← []
+SE achados E NÃO SO_LISTAR ENTÃO
+    EXECUTAR ARQUIVO_DIR.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+    PARA CADA (p, mod) EM achados FAÇA
+        rel ← p.relative_to(RESULTS_ENV_DIR)
+        dst ← ARQUIVO_DIR / rel
+        EXECUTAR dst.parent.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+        EXECUTAR shutil.move(str(p), str(dst))
+        EXECUTAR registro.append({"arquivo": rel.as_posix(), "data_original_utc": f'{mod:%Y-%m-%d %H:%M}', "movido_para": str(dst)})
+    FIM PARA
+    agora ← datetime.datetime.now(datetime.timezone.utc)
+    EXECUTAR pd.DataFrame(registro).to_csv(ARQUIVO_DIR / f'registro_arquivamento_{agora:%Y%m%dT%H%MZ}.csv', index=FALSO)
+    EXECUTAR ARQUIVO_DIR / "LEIA-ME.txt".write_text("Saídas de versões anteriores do F-PluvIA Metropolitan, gerad…" + str(RESULTS_ENV_DIR) + ". ", en…
+    EXIBIR f'      {len(registro)} arquivos movidos para {ARQUIVO_DIR} (reg…
+SENÃO SE achados ENTÃO
+    PARA CADA (p, mod) EM achados[:6] FAÇA
+        EXIBIR f'      seria movido: {p.relative_to(RESULTS_ENV_DIR)} | {mod:%d…
+    FIM PARA
+    SE len(achados) > 6 ENTÃO
+        EXIBIR f'      ... e mais {len(achados) - 6}.'
+    FIM SE
+FIM SE
+// ------------------------------------------- 3. GitHub: remover os mesmos arquivos
+SE LIMPAR_GITHUB ENTÃO
+    TENTAR
+        IMPORTAR userdata DE google.colab
+        TOKEN ← userdata.get("GITHUB_TOKEN") OU "".strip()
+    SE OCORRER ERRO Exception
+        TOKEN ← os.environ.get("GITHUB_TOKEN", "").strip()
+    FIM TENTAR
+    SE NÃO TOKEN E REPO_URL.startswith("https://") ENTÃO
+        LANÇAR ERRO RuntimeError("Defina 'GITHUB_TOKEN' nos Segredos do Colab (ícone de chave)…")
+    FIM SE
+    AUTH ← (["-c", "http.https://github.com/.extraheader=AUTHORIZATION: basic " + base64.b64encode(f'x-access-token:{TOKEN}'.encode()).decode()] SE T…
+    CLONE ← Path(("/content/github_limpeza" SE os.path.isdir("/content") SENÃO "/tmp/github_limpeza"))
+    FUNÇÃO git(*args, cwd, auth)
+        r ← subprocess.run(["git", *(AUTH SE auth SENÃO []), *args], cwd=cwd, text=VERDADEIRO, capture_output=VERDADEIRO)
+        SE r.returncode ENTÃO
+            msg ← (r.stderr + r.stdout.replace(TOKEN, "***") SE TOKEN SENÃO r.stderr + r.stdout)
+            LANÇAR ERRO RuntimeError(f'git {args[0]} falhou:\n{msg.strip()}')
+        FIM SE
+        RETORNAR r.stdout.strip()
+    FIM FUNÇÃO
+    EXECUTAR shutil.rmtree(CLONE, ignore_errors=VERDADEIRO)
+    EXECUTAR git("clone", "--depth", "1", REPO_URL, str(CLONE), cwd=NULO, auth=VERDADEIRO)
+    base ← f'results/{ENV_TAG}/'
+    alvo_repo ← ALVO − [p.name PARA CADA (p, _) EM pulados]   // o que ficou no Drive também fica no repositório
+    no_repo ← [f PARA CADA f EM git("ls-files").splitlines() SE f.startswith(base) E Path(f).name EM alvo_repo]
+    EXIBIR f'[2/3] GitHub: {len(no_repo)} obsoletos encontrados em {base}.'
+    SE no_repo E NÃO SO_LISTAR ENTÃO
+        EXECUTAR git("config", "user.name", GIT_USER_NAME)
+        EXECUTAR git("config", "user.email", GIT_USER_EMAIL)
+        EXECUTAR git("rm", "-q", "--", *no_repo)
+        EXECUTAR git("commit", "-q", "-m", "chore(results): remove saídas obsoletas de versões anteriore…", "-m", f'{len(no_repo)} arquivos gerados a…
+        EXECUTAR git("push", "origin", "HEAD", auth=VERDADEIRO)
+        EXIBIR f"      Commit enviado: {git('rev-parse', 'HEAD')[:12]} ({len(no…
+    SENÃO SE no_repo ENTÃO
+        PARA CADA f EM no_repo[:6] FAÇA
+            EXIBIR f'      seria removido: {f}'
+        FIM PARA
+        SE len(no_repo) > 6 ENTÃO
+            EXIBIR f'      ... e mais {len(no_repo) - 6}.'
+        FIM SE
+    FIM SE
+    EXECUTAR shutil.rmtree(CLONE, ignore_errors=VERDADEIRO)
+SENÃO
+    EXIBIR "[2/3] GitHub: não alterado (LIMPAR_GITHUB = False)."
+FIM SE
+EXIBIR "[3/3] " + ("Nada foi alterado. Se a lista estiver certa, mude SO_LISTAR …" SE SO_LISTAR SENÃO "Concluído. Rode depois a Célula Extra 2, a Pse…

@@ -1,0 +1,408 @@
+// ===== Célula Base (Pseudo-vista) — pseudo-código =====
+// Célula Base (Pseudo-vista): traduz cada célula de código do notebook para pseudo-código em português
+// (tradução por regras, a partir da árvore sintática do Python), grava um .txt por célula na pasta
+// "Pseudo-códigos" do Drive e gera um HTML que copia o notebook com as células de código trocadas pelo
+// pseudo-código.
+IMPORTAR ast
+IMPORTAR copy
+IMPORTAR datetime
+IMPORTAR glob
+IMPORTAR io
+IMPORTAR json
+IMPORTAR os
+IMPORTAR re
+IMPORTAR tokenize
+IMPORTAR unicodedata
+IMPORTAR Path DE pathlib
+IMPORTAR nbformat
+IMPORTAR HTMLExporter DE nbconvert
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+SERIES_CACHE_DIR ← globals().get("SERIES_CACHE_DIR", "/content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km")
+NOTEBOOK_NAME ← "Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTI…"
+NOTEBOOK_PATH ← globals().get("DETECTED_NB_PATH")
+PSEUDO_DIR ← Path(os.path.dirname(SERIES_CACHE_DIR.rstrip("/"))) / "Pseudo-códigos"
+MAX_LINHA ← 150   // linhas de pseudo-código mais longas são cortadas com "…"
+MAX_TEXTO ← 60   // textos literais mais longos aparecem resumidos
+// ------------------------------------------------------------------ 1. o notebook salvo
+SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    PARA CADA cand EM (Path("/content/drive/MyDrive/Colab Notebooks") / NOTEBOOK_NAME, Path("/content/drive/MyDrive") / NOTEBOOK_NAME) FAÇA
+        SE cand.is_file() ENTÃO
+            NOTEBOOK_PATH ← str(cand)
+            INTERROMPER LAÇO
+        FIM SE
+    FIM PARA
+FIM SE
+SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    LANÇAR ERRO RuntimeError(f'Notebook {NOTEBOOK_NAME} não encontrado no Drive. Salve (Ctrl+…)
+FIM SE
+nb ← nbformat.read(NOTEBOOK_PATH, as_version=4)
+salvo ← datetime.datetime.fromtimestamp(os.path.getmtime(NOTEBOOK_PATH))
+EXIBIR f'[Pseudo-vista] Notebook: {os.path.basename(NOTEBOOK_PATH)} (sa…
+// ------------------------------------------------- 2. privacidade (antes de traduzir)
+_EMAIL ← re.compile("[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+")
+_SEGREDO ← re.compile("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s*=\s*…", re.I)
+FUNÇÃO ocultar(s)
+    RETORNAR _EMAIL.sub("[e-mail oculto]", _SEGREDO.sub("\1\2[OCULTO]\2", s))
+FIM FUNÇÃO
+// ------------------------------------------------------ 3. tradutor Python -> pseudo-código
+OPS ← {ast.Add: "+", ast.Sub: "−", ast.Mult: "×", ast.Div: "/", ast.FloorDiv: "DIV", ast.Mod: "MOD", ast.Pow: "^", ast.MatMult: "@", ast.BitAnd: "&",…
+CMP ← {ast.Eq: "=", ast.NotEq: "≠", ast.Lt: "<", ast.LtE: "≤", ast.Gt: ">", ast.GtE: "≥", ast.In: "EM", ast.NotIn: "NÃO EM", ast.Is: "É", ast.IsNot: …
+EXIBIR ← {"print", "display", "plt.show"}
+FUNÇÃO E(n)
+    // Expressão em pseudo-código.
+    SE n É NULO ENTÃO
+        RETORNAR ""
+    FIM SE
+    t ← type(n)
+    SE t É ast.Constant ENTÃO
+        v ← n.value
+        SE v É NULO ENTÃO
+            RETORNAR "NULO"
+        FIM SE
+        SE v É VERDADEIRO ENTÃO
+            RETORNAR "VERDADEIRO"
+        FIM SE
+        SE v É FALSO ENTÃO
+            RETORNAR "FALSO"
+        FIM SE
+        SE isinstance(v, str) ENTÃO
+            v ← v.replace(" ", " ")
+            RETORNAR (f'"{v[:MAX_TEXTO]}…"' SE len(v) > MAX_TEXTO SENÃO f'"{v}"')
+        FIM SE
+        RETORNAR repr(v)
+    FIM SE
+    SE t É ast.Name ENTÃO
+        RETORNAR n.id
+    FIM SE
+    SE t É ast.Attribute ENTÃO
+        RETORNAR f'{E(n.value)}.{n.attr}'
+    FIM SE
+    SE t É ast.Subscript ENTÃO
+        RETORNAR f'{E(n.value)}[{E(n.slice)}]'
+    FIM SE
+    SE t É ast.Slice ENTÃO
+        RETORNAR f'{E(n.lower)}:{E(n.upper)}' + (f':{E(n.step)}' SE n.step SENÃO "")
+    FIM SE
+    SE t É ast.Starred ENTÃO
+        RETORNAR f'*{E(n.value)}'
+    FIM SE
+    SE t É ast.Call ENTÃO
+        a ← [E(x) PARA CADA x EM n.args] + [(f'{k.arg}={E(k.value)}' SE k.arg SENÃO f'**{E(k.value)}') PARA CADA k EM n.keywords]
+        RETORNAR f"{E(n.func)}({', '.join(a)})"
+    FIM SE
+    SE t É ast.BinOp ENTÃO
+        RETORNAR f"{E(n.left)} {OPS.get(type(n.op), '?')} {E(n.right)}"
+    FIM SE
+    SE t É ast.UnaryOp ENTÃO
+        RETORNAR {ast.Not: f'NÃO {E(n.operand)}', ast.USub: f'−{E(n.operand)}', ast.UAdd: E(n.operand), ast.Invert: f'~{E(n.operand)}'}[type(n.op)]
+    FIM SE
+    SE t É ast.BoolOp ENTÃO
+        RETORNAR f" {('E' if isinstance(n.op, ast.And) else 'OU')} ".join([(f'({E(v)})' SE isinstance(v, ast.BoolOp) SENÃO E(v)) PARA CADA v EM n.val…
+    FIM SE
+    SE t É ast.Compare ENTÃO
+        s ← E(n.left)
+        PARA CADA (op, c) EM zip(n.ops, n.comparators) FAÇA
+            s ← s + (" É NULO" SE isinstance(op, ast.Is) E isinstance(c, ast.Constant) E c.value É NULO SENÃO (" NÃO É NULO" SE isinstance(op, ast.Is…
+        FIM PARA
+        RETORNAR s
+    FIM SE
+    SE t É ast.IfExp ENTÃO
+        RETORNAR f'({E(n.body)} SE {E(n.test)} SENÃO {E(n.orelse)})'
+    FIM SE
+    SE t EM (ast.List, ast.Tuple, ast.Set) ENTÃO
+        (a, b) ← {ast.List: "[]", ast.Tuple: "()", ast.Set: "{}"}[t]
+        RETORNAR a + ", ".join([E(x) PARA CADA x EM n.elts]) + b
+    FIM SE
+    SE t É ast.Dict ENTÃO
+        RETORNAR "{" + ", ".join([(f'{E(k)}: {E(v)}' SE k NÃO É NULO SENÃO f'**{E(v)}') PARA CADA (k, v) EM zip(n.keys, n.values)]) + "}"
+    FIM SE
+    SE t EM (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp) ENTÃO
+        elt ← (f'{E(n.key)}: {E(n.value)}' SE t É ast.DictComp SENÃO E(n.elt))
+        gens ← " ".join([f'PARA CADA {E(g.target)} EM {E(g.iter)}' + "".join([f' SE {E(c)}' PARA CADA c EM g.ifs]) PARA CADA g EM n.generators])
+        RETORNAR f'[{elt} {gens}]'
+    FIM SE
+    SE t É ast.Lambda ENTÃO
+        RETORNAR f"FUNÇÃO({', '.join((a.arg for a in n.args.args))}) ↦ {E(n.body)…
+    FIM SE
+    SE t É ast.NamedExpr ENTÃO
+        RETORNAR f'({E(n.target)} ← {E(n.value)})'
+    FIM SE
+    SE t EM (ast.Await) ENTÃO
+        RETORNAR f'AGUARDAR {E(n.value)}'
+    FIM SE
+    SE t É ast.JoinedStr ENTÃO
+        s ← ast.unparse(n).replace(" ", " ")
+        RETORNAR (s[:MAX_TEXTO + 4] + "…" SE len(s) > MAX_TEXTO + 4 SENÃO s)
+    FIM SE
+    TENTAR
+        RETORNAR ast.unparse(n)
+    SE OCORRER ERRO Exception
+        RETORNAR "…"
+    FIM TENTAR
+FIM FUNÇÃO
+FUNÇÃO _args(a)
+    nomes ← [x.arg PARA CADA x EM a.posonlyargs + a.args]
+    SE a.vararg ENTÃO
+        EXECUTAR nomes.append("*" + a.vararg.arg)
+    FIM SE
+    nomes ← nomes + [x.arg PARA CADA x EM a.kwonlyargs]
+    SE a.kwarg ENTÃO
+        EXECUTAR nomes.append("**" + a.kwarg.arg)
+    FIM SE
+    RETORNAR ", ".join(nomes)
+FIM FUNÇÃO
+CLASSE Tradutor
+    FUNÇÃO __init__(self, src)
+        (self.out, self.comentarios, self.usados) ← ([], {}, set())
+        TENTAR
+            PARA CADA tk EM tokenize.generate_tokens(io.StringIO(src).readline) FAÇA
+                SE tk.type = tokenize.COMMENT ENTÃO
+                    txt ← tk.string.lstrip("#").strip()
+                    SE txt E NÃO txt.startswith("@") ENTÃO
+                        self.comentarios[tk.start[0]] ← (txt, tk.line.strip().startswith("#"))
+                    FIM SE
+                FIM SE
+            FIM PARA
+        SE OCORRER ERRO (tokenize.TokenError, IndentationError, SyntaxError)
+            (nada a fazer)
+        FIM TENTAR
+    FIM FUNÇÃO
+    FUNÇÃO w(self, nivel, txt)
+        linha ← "    " × nivel + txt
+        EXECUTAR self.out.append((linha SE len(linha) ≤ MAX_LINHA SENÃO linha[:MAX_LINHA − 1] + "…"))
+    FIM FUNÇÃO
+    FUNÇÃO coment_antes(self, nivel, ate)
+        PARA CADA ln EM sorted([k PARA CADA k EM self.comentarios SE k < ate E k NÃO EM self.usados]) FAÇA
+            (txt, cheio) ← self.comentarios[ln]
+            SE cheio ENTÃO
+                EXECUTAR self.w(nivel, f'// {txt}')
+            FIM SE
+            EXECUTAR self.usados.add(ln)
+        FIM PARA
+    FIM FUNÇÃO
+    FUNÇÃO inline(self, ln)
+        c ← self.comentarios.get(ln)
+        SE c E NÃO c[1] E ln NÃO EM self.usados ENTÃO
+            EXECUTAR self.usados.add(ln)
+            RETORNAR f'   // {c[0]}'
+        FIM SE
+        RETORNAR ""
+    FIM FUNÇÃO
+    FUNÇÃO bloco(self, corpo, nivel)
+        PARA CADA st EM corpo FAÇA
+            EXECUTAR self.st(st, nivel)
+        FIM PARA
+    FIM FUNÇÃO
+    FUNÇÃO st(self, n, nv)
+        EXECUTAR self.coment_antes(nv, n.lineno)
+        tail ← self.inline(n.lineno)
+        t ← type(n)
+        SE t EM (ast.Import, ast.ImportFrom) ENTÃO
+            mod ← ("." × n.level + n.module OU "" SE t É ast.ImportFrom SENÃO "")
+            nomes ← ", ".join([a.name + (f' (como {a.asname})' SE a.asname SENÃO "") PARA CADA a EM n.names])
+            EXECUTAR self.w(nv, (f'IMPORTAR {nomes} DE {mod}' SE mod SENÃO f'IMPORTAR {nomes}') + tail)
+        SENÃO SE t EM (ast.FunctionDef, ast.AsyncFunctionDef) ENTÃO
+            PARA CADA d EM n.decorator_list FAÇA
+                EXECUTAR self.w(nv, f'// decorador: {E(d)}')
+            FIM PARA
+            EXECUTAR self.w(nv, f'FUNÇÃO {n.name}({_args(n.args)})' + tail)
+            corpo ← n.body
+            doc ← ast.get_docstring(n)
+            SE doc ENTÃO
+                PARA CADA ln EM doc.strip().splitlines() FAÇA
+                    EXECUTAR self.w(nv + 1, f'// {ln.strip()}')
+                FIM PARA
+                corpo ← corpo[1:]
+            FIM SE
+            EXECUTAR self.bloco(corpo OU [ast.Pass(lineno=n.lineno)], nv + 1)
+            EXECUTAR self.w(nv, "FIM FUNÇÃO")
+        SENÃO SE t É ast.ClassDef ENTÃO
+            base ← (f" (herda de {', '.join((E(b) for b in n.bases))})" SE n.bases SENÃO "")
+            EXECUTAR self.w(nv, f'CLASSE {n.name}{base}' + tail)
+            corpo ← n.body
+            doc ← ast.get_docstring(n)
+            SE doc ENTÃO
+                PARA CADA ln EM doc.strip().splitlines() FAÇA
+                    EXECUTAR self.w(nv + 1, f'// {ln.strip()}')
+                FIM PARA
+                corpo ← corpo[1:]
+            FIM SE
+            EXECUTAR self.bloco(corpo, nv + 1)
+            EXECUTAR self.w(nv, "FIM CLASSE")
+        SENÃO SE t É ast.If ENTÃO
+            EXECUTAR self.w(nv, f'SE {E(n.test)} ENTÃO' + tail)
+            EXECUTAR self.bloco(n.body, nv + 1)
+            orelse ← n.orelse
+            ENQUANTO len(orelse) = 1 E isinstance(orelse[0], ast.If) FAÇA
+                EXECUTAR self.coment_antes(nv, orelse[0].lineno)
+                EXECUTAR self.w(nv, f'SENÃO SE {E(orelse[0].test)} ENTÃO')
+                EXECUTAR self.bloco(orelse[0].body, nv + 1)
+                orelse ← orelse[0].orelse
+            FIM ENQUANTO
+            SE orelse ENTÃO
+                EXECUTAR self.w(nv, "SENÃO")
+                EXECUTAR self.bloco(orelse, nv + 1)
+            FIM SE
+            EXECUTAR self.w(nv, "FIM SE")
+        SENÃO SE t EM (ast.For, ast.AsyncFor) ENTÃO
+            EXECUTAR self.w(nv, f'PARA CADA {E(n.target)} EM {E(n.iter)} FAÇA' + tail)
+            EXECUTAR self.bloco(n.body, nv + 1)
+            SE n.orelse ENTÃO
+                EXECUTAR self.w(nv, "SE O LAÇO TERMINAR SEM INTERRUPÇÃO")
+                EXECUTAR self.bloco(n.orelse, nv + 1)
+            FIM SE
+            EXECUTAR self.w(nv, "FIM PARA")
+        SENÃO SE t É ast.While ENTÃO
+            EXECUTAR self.w(nv, f'ENQUANTO {E(n.test)} FAÇA' + tail)
+            EXECUTAR self.bloco(n.body, nv + 1)
+            EXECUTAR self.w(nv, "FIM ENQUANTO")
+        SENÃO SE t EM (ast.With, ast.AsyncWith) ENTÃO
+            itens ← ", ".join([E(i.context_expr) + (f' COMO {E(i.optional_vars)}' SE i.optional_vars SENÃO "") PARA CADA i EM n.items])
+            EXECUTAR self.w(nv, f'USANDO {itens}' + tail)
+            EXECUTAR self.bloco(n.body, nv + 1)
+            EXECUTAR self.w(nv, "FIM USANDO")
+        SENÃO SE t É ast.Try OU t.__name__ = "TryStar" ENTÃO
+            EXECUTAR self.w(nv, "TENTAR" + tail)
+            EXECUTAR self.bloco(n.body, nv + 1)
+            PARA CADA h EM n.handlers FAÇA
+                EXECUTAR self.w(nv, f"SE OCORRER ERRO{(' ' + E(h.type) if h.type else '')}{(' (chama…)
+                EXECUTAR self.bloco(h.body, nv + 1)
+            FIM PARA
+            SE n.orelse ENTÃO
+                EXECUTAR self.w(nv, "SE NÃO OCORRER ERRO")
+                EXECUTAR self.bloco(n.orelse, nv + 1)
+            FIM SE
+            SE n.finalbody ENTÃO
+                EXECUTAR self.w(nv, "AO FINAL, SEMPRE")
+                EXECUTAR self.bloco(n.finalbody, nv + 1)
+            FIM SE
+            EXECUTAR self.w(nv, "FIM TENTAR")
+        SENÃO SE t É ast.Return ENTÃO
+            EXECUTAR self.w(nv, f'RETORNAR {E(n.value)}'.rstrip() + tail)
+        SENÃO SE t É ast.Raise ENTÃO
+            EXECUTAR self.w(nv, f'LANÇAR ERRO {E(n.exc)}'.rstrip() + tail)
+        SENÃO SE t É ast.Assign ENTÃO
+            alvos ← " ← ".join([E(a) PARA CADA a EM n.targets])
+            EXECUTAR self.w(nv, f'{alvos} ← {E(n.value)}' + tail)
+        SENÃO SE t É ast.AugAssign ENTÃO
+            EXECUTAR self.w(nv, f"{E(n.target)} ← {E(n.target)} {OPS.get(type(n.op), '?')} {E(n.… + tail)
+        SENÃO SE t É ast.AnnAssign ENTÃO
+            EXECUTAR self.w(nv, (f'{E(n.target)} ← {E(n.value)}' SE n.value NÃO É NULO SENÃO f'DECLARAR {E(n.target)}') + tail)
+        SENÃO SE t É ast.Expr ENTÃO
+            v ← n.value
+            SE isinstance(v, ast.Constant) E isinstance(v.value, str) ENTÃO
+                PARA CADA ln EM v.value.strip().splitlines() FAÇA
+                    EXECUTAR self.w(nv, f'// {ln.strip()}')
+                FIM PARA
+            SENÃO SE isinstance(v, ast.Call) E isinstance(v.func, ast.Name) E v.func.id = "__SHELL__" ENTÃO
+                EXECUTAR self.w(nv, f'EXECUTAR NO TERMINAL: {v.args[0].value}' + tail)
+            SENÃO SE isinstance(v, ast.Call) E isinstance(v.func, ast.Name) E v.func.id = "__MAGIC__" ENTÃO
+                EXECUTAR self.w(nv, f'COMANDO DO AMBIENTE: {v.args[0].value}' + tail)
+            SENÃO SE isinstance(v, ast.Call) E E(v.func) EM EXIBIR ENTÃO
+                EXECUTAR self.w(nv, f"EXIBIR {', '.join((E(a) for a in v.args))}".rstrip() + tail)
+            SENÃO
+                EXECUTAR self.w(nv, f'EXECUTAR {E(v)}' + tail)
+            FIM SE
+        SENÃO SE t É ast.Pass ENTÃO
+            EXECUTAR self.w(nv, "(nada a fazer)")
+        SENÃO SE t É ast.Break ENTÃO
+            EXECUTAR self.w(nv, "INTERROMPER LAÇO")
+        SENÃO SE t É ast.Continue ENTÃO
+            EXECUTAR self.w(nv, "PASSAR À PRÓXIMA ITERAÇÃO")
+        SENÃO SE t É ast.Assert ENTÃO
+            EXECUTAR self.w(nv, f'GARANTIR QUE {E(n.test)}' + (f' (senão: {E(n.msg)})' SE n.msg SENÃO ""))
+        SENÃO SE t É ast.Delete ENTÃO
+            EXECUTAR self.w(nv, f"REMOVER {', '.join((E(x) for x in n.targets))}" + tail)
+        SENÃO SE t EM (ast.Global, ast.Nonlocal) ENTÃO
+            EXECUTAR self.w(nv, f"USAR VARIÁVEIS {('GLOBAIS' if t is ast.Global else 'EXTERNAS')…)
+        SENÃO
+            TENTAR
+                EXECUTAR self.w(nv, ast.unparse(n).splitlines()[0] + " …")
+            SE OCORRER ERRO Exception
+                EXECUTAR self.w(nv, "…")
+            FIM TENTAR
+        FIM SE
+    FIM FUNÇÃO
+FIM CLASSE
+FUNÇÃO _preparar(src)
+    // Troca linhas de terminal (!) e comandos mágicos (%) por chamadas marcadoras, mantendo a indentação.
+    linhas ← []
+    PARA CADA ln EM src.splitlines() FAÇA
+        s ← ln.lstrip()
+        ind ← ln[:len(ln) − len(s)]
+        SE s.startswith("!") ENTÃO
+            EXECUTAR linhas.append(f'{ind}__SHELL__({s[1:].strip()!r})')
+        SENÃO SE s.startswith("%") ENTÃO
+            EXECUTAR linhas.append(f"{ind}__MAGIC__({s.lstrip('%').strip()!r})")
+        SENÃO
+            EXECUTAR linhas.append(ln)
+        FIM SE
+    FIM PARA
+    RETORNAR " ".join(linhas)
+FIM FUNÇÃO
+FUNÇÃO traduzir(src)
+    src ← _preparar(ocultar(src))
+    TENTAR
+        arvore ← ast.parse(src)
+    SE OCORRER ERRO SyntaxError (chamado e)
+        RETORNAR f'// Pseudo-código indisponível: a célula não é Python válido (l…
+    FIM TENTAR
+    tr ← Tradutor(src)
+    PARA CADA st EM arvore.body FAÇA
+        EXECUTAR tr.st(st, 0)
+    FIM PARA
+    EXECUTAR tr.coment_antes(0, 10 ^ 9)
+    RETORNAR (" ".join(tr.out) SE tr.out SENÃO "// (célula sem instruções)")
+FIM FUNÇÃO
+// ---------------------------------------------------------------- 4. traduz as células
+_ROT ← re.compile("^#\s*(C[ée]lula\s+[^:\n]+)", re.M)
+EXECUTAR PSEUDO_DIR.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+PARA CADA antigo EM glob.glob(str(PSEUDO_DIR / "*.txt")) + glob.glob(str(PSEUDO_DIR / "*.html")) FAÇA
+    EXECUTAR os.remove(antigo)   // a pasta reflete sempre o notebook atual
+FIM PARA
+nb_pseudo ← copy.deepcopy(nb)
+(indice, n_cod) ← ([], 0)
+PARA CADA (i, cel) EM enumerate(nb_pseudo.cells) FAÇA
+    SE cel.cell_type ≠ "code" OU NÃO cel.source.strip() ENTÃO
+        PASSAR À PRÓXIMA ITERAÇÃO
+    FIM SE
+    n_cod ← n_cod + 1
+    m ← _ROT.search(cel.source)
+    rotulo ← (m.group(1).strip() SE m SENÃO f'Célula de código nº {n_cod}')
+    pseudo ← traduzir(cel.source)
+    cel.source ← f'// ===== {rotulo} — pseudo-código =====\n{pseudo}'
+    slug ← re.sub("[^0-9a-z]+", "_", unicodedata.normalize("NFKD", rotulo.lower()).encode("ascii", "ignore").decode()).strip("_")
+    nome ← f'{n_cod:02d}_{slug}.txt'
+    EXECUTAR PSEUDO_DIR / nome.write_text(cel.source + " ", encoding="utf-8")
+    EXECUTAR indice.append({"Ordem": n_cod, "Célula": rotulo, "Arquivo": nome, "Linhas de código": len(nb.cells[i].source.splitlines()), "Linhas de p…
+FIM PARA
+// saídas de texto: mesmas regras de privacidade
+PARA CADA cel EM nb_pseudo.cells FAÇA
+    PARA CADA out EM cel.get("outputs", []) FAÇA
+        SE "text" EM out ENTÃO
+            out["text"] ← ocultar((out["text"] SE isinstance(out["text"], str) SENÃO "".join(out["text"])))
+        FIM SE
+        PARA CADA k EM ("text/plain", "text/html", "text/markdown") FAÇA
+            SE k EM out.get("data", {}) ENTÃO
+                v ← out["data"][k]
+                out["data"][k] ← ocultar((v SE isinstance(v, str) SENÃO "".join(v)))
+            FIM SE
+        FIM PARA
+    FIM PARA
+FIM PARA
+LEGENDA ← "// Convenções: ← atribuição | FUNÇÃO/CLASSE/SE/PARA CADA/ENQ…"
+EXECUTAR PSEUDO_DIR / "00_LEIA-ME.txt".write_text(f'Pseudo-códigos do notebook F-PluvIA Metropolitan\nNotebook: {o… + LEGENDA + "  " + " ".join([f"{r…
+// --------------------------------------------------------------------- 5. HTML
+nb_pseudo.metadata["language_info"] ← {"name": "text", "pygments_lexer": "text"}
+EXECUTAR nb_pseudo.metadata.pop("widgets", NULO)
+EXECUTAR nb_pseudo.cells.insert(0, nbformat.v4.new_markdown_cell("# Pseudo-vista do notebook F-PluvIA Metropolitan  Cópia do n…" + LEGENDA + " ```"))
+exp ← HTMLExporter()
+exp.exclude_input_prompt ← VERDADEIRO
+(html, _) ← exp.from_notebook_node(nb_pseudo)
+html_path ← PSEUDO_DIR / f'{Path(NOTEBOOK_PATH).stem}_pseudo_vista.html'
+EXECUTAR html_path.write_text(html, encoding="utf-8")
+IMPORTAR pandas (como pd)
+EXIBIR pd.DataFrame(indice).set_index("Ordem")
+EXIBIR f'[Pseudo-vista] {len(indice)} células traduzidas -> {PSEUDO_DIR…
+EXIBIR f'[Pseudo-vista] HTML -> {html_path} ({html_path.stat().st_size …
+EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"

@@ -1,0 +1,28 @@
+Etapa,Modelo,Variante,Unidade,Quantidade,Tokens por unidade,Tokens,Posições processadas pelo Transformer,Tipo,Observação
+Ajuste fino (Célula 4),F-PluvIA (lr 5e-5),treino,amostra de 8 quadros,49700,512,25446400,25446400,lidos (treino/validação),5 épocas de 9940 janelas (recorte aleatório)
+Ajuste fino (Célula 4),F-PluvIA (lr 5e-5),validação a cada época,amostra de 8 quadros,11120,512,5693440,5693440,lidos (treino/validação),5 validações completas de 2224 janelas de 2024
+Ajuste fino suave (Célula 4.3),F-PluvIA suave (lr 1e-5),treino,amostra de 8 quadros,400,512,204800,204800,lidos (treino/validação),rodada 20261117T1414Z: 25 passos (interrompida no início)
+Ajuste fino suave (Célula 4.3),F-PluvIA suave (lr 1e-5),treino,amostra de 8 quadros,47200,512,24166400,24166400,lidos (treino/validação),rodada 20261117T1435Z: 2953 passos
+Ajuste fino suave (Célula 4.3),F-PluvIA suave (lr 1e-5),validação a cada ¼ de época,amostra de 8 quadros,42256,512,21635072,21635072,lidos (treino/validação),rodada 20261117T1435Z: 19 validações completas
+Validação Fine-Tuned × Zero-Shot (Célula 4.1),F-PluvIA (lr 5e-5),perda nos tokens,amostra de 8 quadros,2224,512,1138688,1138688,lidos (treino/validação),uma passada sobre a validação de 2024
+Validação Fine-Tuned × Zero-Shot (Célula 4.1),Zero-Shot,perda nos tokens,amostra de 8 quadros,2224,512,1138688,1138688,lidos (treino/validação),uma passada sobre a validação de 2024
+"Escolha da decodificação (Célula 4.5, validação 2024)",F-PluvIA (lr 5e-5),"Padrão (T=1, sem top-k)",janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",F-PluvIA (lr 5e-5),top-k 50,janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",F-PluvIA (lr 5e-5),top-k 10,janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",F-PluvIA (lr 5e-5),"Temperatura 0,7",janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",F-PluvIA (lr 5e-5),Gulosa (top-k 1),janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",F-PluvIA (lr 5e-5),Média de 8 sorteios,janela (4 quadros),1920,256,491520,236175360,gerados (previsão),240 janelas x 8 membros
+"Escolha da decodificação (Célula 4.5, validação 2024)",Zero-Shot,"Padrão (T=1, sem top-k)",janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",Zero-Shot,top-k 50,janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",Zero-Shot,top-k 10,janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",Zero-Shot,"Temperatura 0,7",janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",Zero-Shot,Gulosa (top-k 1),janela (4 quadros),240,256,61440,29521920,gerados (previsão),240 janelas
+"Escolha da decodificação (Célula 4.5, validação 2024)",Zero-Shot,Média de 8 sorteios,janela (4 quadros),1920,256,491520,236175360,gerados (previsão),240 janelas x 8 membros
+Teste 2025 (Célula 12),F-PluvIA (lr 5e-5),F-PluvIA-A (sorteio padrão),janela (4 quadros),1729,256,442624,212680832,gerados (previsão),rodada com a decodificação padrão do pacote
+Teste 2025 (Célula 12),Zero-Shot,sorteio padrão,janela (4 quadros),1729,256,442624,212680832,gerados (previsão),rodada com a decodificação padrão do pacote
+Teste 2025 (Célula 12),F-PluvIA (lr 5e-5),F-PluvIA-G (gulosa),janela (4 quadros),1729,256,442624,212680832,gerados (previsão),decodificação escolhida em 2024
+Teste 2025 (Célula 12),Zero-Shot,top-k 10,janela (4 quadros),1729,256,442624,212680832,gerados (previsão),decodificação escolhida em 2024
+Teste 2025 (Célula 12),F-PluvIA (lr 5e-5),F-PluvIA-C8 (média de 8),janela (4 quadros),13832,256,3540992,1701446656,gerados (previsão),8 membros por janela
+Teste cego 2026 (Célula 13.1),F-PluvIA (lr 5e-5),F-PluvIA-G (gulosa),janela (4 quadros),2110,256,540160,259546880,gerados (previsão),2108 janelas da série + 2 estudos de caso
+Teste cego 2026 (Célula 13.1),Zero-Shot,top-k 10,janela (4 quadros),2110,256,540160,259546880,gerados (previsão),2108 janelas da série + 2 estudos de caso
+Teste cego 2026 (Célula 13.1),F-PluvIA (lr 5e-5),F-PluvIA-C8 (média de 8),janela (4 quadros),16880,256,4321280,2076375040,gerados (previsão),8 membros por janela

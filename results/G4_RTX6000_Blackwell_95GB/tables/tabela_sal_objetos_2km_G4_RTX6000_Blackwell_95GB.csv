@@ -11,3 +11,11 @@ NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB
 NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Persistência,+60 min,60,-0.6411,0.3097,0.2841,53.19,1.2348,1.366,3 / 3,ok
 NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Persistência,+90 min,90,-0.3012,0.4052,0.1708,53.74,0.8772,1.508,3 / 3,ok
 NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Persistência,+120 min,120,-0.5707,0.2938,0.1564,53.05,1.0209,1.344,4 / 3,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Lucas-Kanade (pysteps),+30 min,30,-0.2822,-0.1361,0.1734,15.32,0.5916,0.873,5 / 3,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Lucas-Kanade (pysteps),+60 min,60,-0.7363,0.1963,0.2656,40.78,1.1982,1.218,3 / 3,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Lucas-Kanade (pysteps),+90 min,90,-0.4571,0.2289,0.1531,36.03,0.8392,1.259,3 / 3,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Lucas-Kanade (pysteps),+120 min,120,-0.7625,0.0401,0.1469,30.55,0.9495,1.041,4 / 3,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,LINDA (pysteps),+30 min,30,0.849,0.0109,0.1862,19.96,1.046,1.011,5 / 2,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,LINDA (pysteps),+60 min,60,0.8556,0.2397,0.4674,44.01,1.5626,1.272,3 / 1,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,LINDA (pysteps),+90 min,90,1.2659,0.3401,0.342,40.47,1.9481,1.41,3 / 1,ok
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,LINDA (pysteps),+120 min,120,1.1427,0.1212,0.3136,34.06,1.5776,1.129,4 / 1,ok

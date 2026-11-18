@@ -1,0 +1,3 @@
+Previsão de 1 quadro (+30 min),Tokens gerados,Passadas do Transformer,Contexto por passada [tokens],Posições processadas,Tempo medido por quadro [s],Tokens gerados por segundo
+F-PluvIA-A / F-PluvIA-G / Zero-Shot (1 sorteio),64,64,449 a 512,30752,0.41,156.1
+F-PluvIA-C8 (média de 8),512,64,449 a 512,246016,1.768,289.6
