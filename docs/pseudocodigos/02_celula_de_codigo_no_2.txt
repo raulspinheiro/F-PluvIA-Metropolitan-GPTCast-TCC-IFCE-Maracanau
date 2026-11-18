@@ -1,0 +1,29 @@
+// ===== Célula de código nº 2 — pseudo-código =====
+// ==============================================================================
+// AUDITORIA DE HARDWARE: Verificação de Unidade de Processamento (GPU / CUDA)
+// ==============================================================================
+IMPORTAR subprocess
+IMPORTAR torch
+EXIBIR "=" × 70
+EXIBIR "RELATÓRIO DE TELEMETRIA DO AMBIENTE DE EXECUÇÃO COLAB"
+EXIBIR "=" × 70
+cuda_status ← torch.cuda.is_available()
+EXIBIR f'[*] CUDA Disponível: {cuda_status}'
+SE cuda_status ENTÃO
+    device_name ← torch.cuda.get_device_name(0)
+    total_vram_gb ← round(torch.cuda.get_device_properties(0).total_memory / 1024 ^ 3, 2)
+    bf16_support ← torch.cuda.is_bf16_supported()
+    EXIBIR f'[*] GPU Atribuída (PyTorch): {device_name}'
+    EXIBIR f'[*] VRAM Total Dedicada: {total_vram_gb} GiB'
+    EXIBIR f'[*] Suporte Nativo a BF16: {bf16_support}'
+    EXIBIR "-" × 70
+    EXIBIR "[*] Relatório Detalhado do Driver (nvidia-smi):"
+    TENTAR
+        EXECUTAR subprocess.run(["nvidia-smi"], check=VERDADEIRO)
+    SE OCORRER ERRO Exception (chamado e)
+        EXIBIR f'[AVISO] Não foi possível executar o nvidia-smi: {e}'
+    FIM TENTAR
+SENÃO
+    EXIBIR "[!] ATENÇÃO: Nenhuma GPU detectada. O ambiente está rodando …"
+FIM SE
+EXIBIR "=" × 70

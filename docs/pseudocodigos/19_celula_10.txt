@@ -1,0 +1,135 @@
+// ===== Célula 10 — pseudo-código =====
+// Célula 10: Benchmark de 5 Métodos no Estudo de Caso — GPTCast-8x8 (ajustado e zero-shot) x pysteps
+// (Lucas-Kanade e LINDA determinístico) x Persistência, com tempos medidos e ordenação por horizonte.
+IMPORTAR datetime
+IMPORTAR os
+IMPORTAR time
+IMPORTAR matplotlib.pyplot (como plt)
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR dbz_to_rainfall DE gptcast.utils.converters
+IMPORTAR motion, nowcasts DE pysteps
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+RES_GRID_KM ← float(globals().get("RES_KM", 2.0))
+STEP_MIN ← 30
+SE "data_str" NÃO EM globals() ENTÃO
+    data_str ← dt − datetime.timedelta(minutes=STEP_MIN × FORECAST_STEPS + 180).strftime("%d/%m/%Y")
+FIM SE
+// ------------------------------------------------------------ 1. adapter do pysteps
+CLASSE PyStepsNowcastAdapter
+    // Lucas-Kanade (campo de movimento + extrapolação semi-lagrangiana) e LINDA (pysteps).
+    // 
+    // LINDA roda na versão determinística (add_perturbations=False): uma única previsão reproduzível,
+    // comparável às demais. O campo de movimento é estimado em dBZ nos últimos `n_motion` quadros.
+    FUNÇÃO __init__(self, oflow_method, n_motion)
+        self.oflow_fn ← motion.get_method(oflow_method)
+        self.extrap_fn ← nowcasts.get_method("extrapolation")
+        self.linda_fn ← nowcasts.get_method("linda")
+        self.n_motion ← n_motion
+        self.linda_status ← "não executado"
+    FIM FUNÇÃO
+    FUNÇÃO compute_motion_field(self, in_dbz_seq)
+        seq ← np.asarray(np.ma.filled(in_dbz_seq, 0.0), dtype=np.float64)
+        RETORNAR self.oflow_fn(np.clip(np.nan_to_num(seq[−self.n_motion:], nan=0.0), 0.0, 60.0))
+    FIM FUNÇÃO
+    FUNÇÃO forecast_extrapolation_lk(self, last_frame_rain, velocity_field, steps)
+        r ← np.clip(np.nan_to_num(last_frame_rain, nan=0.0), 0.0, 205.0).astype(np.float64)
+        out ← self.extrap_fn(r, velocity_field, steps)
+        RETORNAR np.clip(np.nan_to_num(out, nan=0.0), 0.0, 205.0).astype(np.float32)
+    FIM FUNÇÃO
+    FUNÇÃO forecast_linda(self, rain_seq_context, velocity_field, steps, res_km, feature_method, ari_order)
+        r ← np.clip(np.nan_to_num(rain_seq_context[−ari_order + 2:], nan=0.0), 0.0, 205.0).astype(np.float64)
+        TENTAR
+            out ← self.linda_fn(r, velocity_field, steps, feature_method=feature_method, ari_order=ari_order, add_perturbations=FALSO, kmperpixel=res…
+            out ← (out[0] SE isinstance(out, tuple) SENÃO out)
+            out ← (out[0] SE out.ndim = 4 SENÃO out)
+            self.linda_status ← f"LINDA-{('D' if feature_method == 'domain' else 'F')} determiní…
+            RETORNAR np.clip(np.nan_to_num(out, nan=0.0), 0.0, 205.0).astype(np.float32)
+        SE OCORRER ERRO Exception (chamado e)
+            self.linda_status ← f'FALHOU ({type(e).__name__}): substituído por Lucas-Kanade'
+            EXIBIR f'[Aviso Célula 10] LINDA falhou ({e}); a linha "LINDA" será a e…
+            RETORNAR self.forecast_extrapolation_lk(rain_seq_context[−1], velocity_field, steps)
+        FIM TENTAR
+    FIM FUNÇÃO
+FIM CLASSE
+// ------------------------------------------------------ 2. métodos físicos, cronometrados
+pysteps_adapter ← PyStepsNowcastAdapter("LK")
+raw_in_dbz_all ← np.asarray(np.ma.filled(input_data_dbz, 0.0), dtype=np.float64)
+context_rain_all ← np.clip(dbz_to_rainfall(np.clip(raw_in_dbz_all, 0.0, 60.0)), 0.0, 205.0)
+t0 ← time.perf_counter()
+velocity_field ← pysteps_adapter.compute_motion_field(raw_in_dbz_all)
+t_of_s ← time.perf_counter() − t0
+t0 ← time.perf_counter()
+lk_extrap_rain ← pysteps_adapter.forecast_extrapolation_lk(context_rain_all[−1], velocity_field, FORECAST_STEPS)
+t_lk_total_s ← t_of_s + time.perf_counter() − t0
+t0 ← time.perf_counter()
+linda_rain ← pysteps_adapter.forecast_linda(context_rain_all, velocity_field, FORECAST_STEPS)
+t_linda_total_s ← t_of_s + time.perf_counter() − t0
+t0 ← time.perf_counter()
+_ ← np.repeat(context_rain_all[−1:], FORECAST_STEPS, axis=0)
+t_pers_s ← time.perf_counter() − t0
+speed ← np.hypot(velocity_field[0], velocity_field[1])
+EXIBIR f'[Célula 10] Movimento LK: mediana {np.median(speed) * RES_GRID…
+// ---------------------------------------------------------------- 3. tabela conjunta
+t_ft ← (timing_gpu_log.get("inferencia_4passos_finetuned_s", np.nan) SE "timing_gpu_log" EM globals() SENÃO np.nan)
+t_zs ← (timing_gpu_log.get("inferencia_4passos_zeroshot_s", np.nan) SE "timing_gpu_log" EM globals() SENÃO np.nan)
+linha_linda ← ("LINDA (pysteps)" SE "FALHOU" NÃO EM pysteps_adapter.linda_status SENÃO "LINDA (pysteps) [falhou: é LK]")
+blocos ← [(df_gpt8, t_ft, "GPU"), ((df_gpt8_zs SE "df_gpt8_zs" EM globals() SENÃO NULO), t_zs, "GPU"), (evaluate_nowcast_by_leadtime(ground_truth_rai…
+parts ← []
+PARA CADA (df_m, t_m, dev) EM blocos FAÇA
+    SE df_m É NULO ENTÃO
+        PASSAR À PRÓXIMA ITERAÇÃO
+    FIM SE
+    d ← df_m.copy()
+    d["Tempo_Inferência_4Passos [s]"] ← round(float(t_m), 4)
+    d["Dispositivo"] ← dev
+    EXECUTAR parts.append(d)
+FIM PARA
+df_full_benchmark ← pd.concat(parts, ignore_index=VERDADEIRO)
+bench_csv_path ← os.path.join(RESULTS_ENV_DIR, f'benchmark_completo_pysteps_2km_{ENV_TAG}.csv')
+EXECUTAR df_full_benchmark.to_csv(bench_csv_path, index=FALSO)
+// Ordenação por horizonte (1 = melhor) em MAE, CSI ≥ 0,5 e CSI ≥ 1,0 mm/h
+rank ← df_full_benchmark[["Modelo", "Lead Time", "MAE (↓) [mm/h]", "CSI_0.5", "CSI_1.0"]].copy()
+rank["Pos. MAE"] ← rank.groupby("Lead Time")["MAE (↓) [mm/h]"].rank(method="min").astype("Int64")
+rank["Pos. CSI 0,5"] ← rank.groupby("Lead Time")["CSI_0.5"].rank(ascending=FALSO, method="min").astype("Int64")
+rank["Pos. CSI 1,0"] ← rank.groupby("Lead Time")["CSI_1.0"].rank(ascending=FALSO, method="min").astype("Int64")
+df_rank ← rank.pivot(index="Modelo", columns="Lead Time", values=["Pos. MAE", "Pos. CSI 0,5", "Pos. CSI 1,0"])
+_leads ← list(dict.fromkeys(df_full_benchmark["Lead Time"]))
+df_rank ← df_rank.reindex(columns=pd.MultiIndex.from_product([["Pos. MAE", "Pos. CSI 0,5", "Pos. CSI 1,0"], _leads]))
+cols ← ["Ambiente_Execucao", "Modelo", "Lead Time", "MAE (↓) [mm/h]", "RMSE (↓) [mm/h]", "SSIM (↑)", "PCC (↑)", "Volume Prev/Obs (=1)", "CSI/BIAS @ 0…
+cols ← [c PARA CADA c EM cols SE c EM df_full_benchmark.columns]
+EXIBIR f'\n=== Benchmark de 5 métodos — estudo de caso {data_str} (vali…
+EXIBIR "Tempos: GPTCast em GPU (média de repetições, Célula 4); pyst…"
+EXIBIR df_full_benchmark[cols].set_index(["Ambiente_Execucao", "Modelo", "Lead Time"])
+EXIBIR " === Posição de cada método por horizonte (1 = melhor) ==="
+EXIBIR df_rank
+// ------------------------------------------------------------------ 4. mapas e painel
+SE "plot_rmf_spatial" EM globals() ENTÃO
+    EXECUTAR plot_rmf_spatial(linda_rain, dt, f'{linha_linda} — {pysteps_adapter.linda_status} — {data_str}', save_filename=f'mapa_04_linda_pysteps_2…
+    EXECUTAR plot_rmf_spatial(lk_extrap_rain, dt, f'Fluxo óptico Lucas-Kanade (pysteps), extrapolação semi-lagrang…, save_filename=f'mapa_05_fluxo_op…
+FIM SE
+styles ← {"GPTCast-8x8 (Fine-Tuned RMF)": ("#d62728", "o-"), "GPTCast-8x8 (Zero-Shot)": ("#ff7f0e", "v--"), linha_linda: ("#1f77b4", "^-"), "Fluxo Óp…
+metrics ← [("RMSE (↓) [mm/h]", "RMSE (mm/h, ↓)"), ("MAE (↓) [mm/h]", "MAE (mm/h, ↓)"), ("SSIM (↑)", "SSIM em dBZ (↑)"), ("CSI_0.5", "CSI ≥ 0,5 mm/h (…
+(fig, axes) ← plt.subplots(1, 4, figsize=(19.5, 4.5), constrained_layout=VERDADEIRO)
+PARA CADA name EM df_full_benchmark["Modelo"].unique() FAÇA
+    sub ← df_full_benchmark[df_full_benchmark["Modelo"] = name]
+    (color, ls) ← styles.get(name, ("k", "o-"))
+    PARA CADA (ax, (c, _)) EM zip(axes, metrics) FAÇA
+        EXECUTAR ax.plot(sub["Lead_min_num"], sub[c], ls, color=color, lw=2, label=name)
+    FIM PARA
+FIM PARA
+PARA CADA (ax, (_, title)) EM zip(axes, metrics) FAÇA
+    EXECUTAR ax.set_title(title, fontweight="bold", fontsize=11)
+    EXECUTAR ax.set_xlabel("Horizonte (min)")
+    EXECUTAR ax.set_xticks([30, 60, 90, 120])
+    EXECUTAR ax.grid(VERDADEIRO, ls=":", alpha=0.6)
+FIM PARA
+EXECUTAR axes[0].legend(fontsize=8)
+EXECUTAR fig.suptitle(f'Benchmark de 5 métodos — estudo de caso {data_str} (validação)…, fontsize=12.5, fontweight="bold")
+bench_fig_path ← os.path.join(RESULTS_ENV_DIR, f'painel_benchmark_5modelos_2km_{ENV_TAG}.png')
+EXECUTAR fig.savefig(bench_fig_path, dpi=300, bbox_inches="tight")
+EXIBIR
+EXIBIR f'[Célula 10] Tabela -> {bench_csv_path}\n[Célula 10] Painel -> …

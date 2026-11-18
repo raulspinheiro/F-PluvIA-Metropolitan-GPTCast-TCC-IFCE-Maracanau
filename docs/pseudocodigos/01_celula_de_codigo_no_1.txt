@@ -1,0 +1,21 @@
+// ===== Célula de código nº 1 — pseudo-código =====
+IMPORTAR torch
+SE torch.cuda.is_available() ENTÃO
+    dev_name ← torch.cuda.get_device_name(0)
+    vram_gb ← torch.cuda.get_device_properties(0).total_memory / 1024 ^ 3
+    SE "H100" EM dev_name ENTÃO
+        ENV_TAG ← "H100_Hopper_80GB"
+        ENV_LABEL ← "NVIDIA H100 (Hopper 80 GB)"
+    SENÃO SE "6000" EM dev_name OU "Blackwell" EM dev_name ENTÃO
+        ENV_TAG ← "G4_RTX6000_Blackwell_95GB"
+        ENV_LABEL ← "NVIDIA RTX PRO 6000 Blackwell (95 GB)"
+    SENÃO
+        ENV_TAG ← dev_name.replace(" ", "_")
+        ENV_LABEL ← dev_name
+    FIM SE
+SENÃO
+    ENV_TAG ← "CPU_Padrao"
+    ENV_LABEL ← "CPU Padrão"
+FIM SE
+EXIBIR f'[Rastreabilidade Ativa] Ambiente detectado: {ENV_LABEL}'
+EXIBIR f'[Rastreabilidade Ativa] Tag de identificação: {ENV_TAG}'

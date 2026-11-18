@@ -1,0 +1,117 @@
+// ===== Célula (Activates Checkpoint) — pseudo-código =====
+// Célula (Activates Checkpoint): Conferência do Checkpoint Ativo, Auditoria de Parâmetros Medida no Modelo e
+// Quadro-Resumo de Partições e Tempos.
+IMPORTAR hashlib
+IMPORTAR json
+IMPORTAR os
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR torch
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+CHECKPOINTS_ENV_DIR ← globals().get("CHECKPOINTS_ENV_DIR", os.path.join(CHECKPOINTS_DIR, ENV_TAG))
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+CSV_LOG_PATH ← os.path.join(SERIES_CACHE_DIR, "log_tempos_etl_imerg_2019_2025.csv")
+GPU_LOG_JSON ← os.path.join(RESULTS_ENV_DIR, f'log_tempos_treino_e_inferencia_{ENV_TAG}_2019_2025.json')
+GPU_LOG_CSV ← GPU_LOG_JSON.replace(".json", ".csv")
+FUNÇÃO fmt_seconds(sec)
+    SE sec É NULO OU (isinstance(sec, float) E NÃO np.isfinite(sec)) ENTÃO
+        RETORNAR "não registrado"
+    FIM SE
+    (m, s) ← divmod(float(sec), 60)
+    (h, m) ← divmod(int(m), 60)
+    RETORNAR f'{h:02d}h:{m:02d}m:{s:05.2f}s'
+FIM FUNÇÃO
+FUNÇÃO fmt_params(n)
+    RETORNAR f'{n:,}'.replace(",", ".") + f' ({n / 1000000.0:.2f} M)'
+FIM FUNÇÃO
+FUNÇÃO _transformer_digest(state)
+    // Impressão digital (SHA-256) dos pesos do Transformer, independente do dispositivo.
+    h ← hashlib.sha256()
+    PARA CADA k EM sorted([k PARA CADA k EM state SE k.startswith("transformer.")]) FAÇA
+        EXECUTAR h.update(k.encode())
+        EXECUTAR h.update(state[k].detach().float().cpu().numpy().tobytes())
+    FIM PARA
+    RETORNAR h.hexdigest()[:16]
+FIM FUNÇÃO
+SE "gpt8" NÃO EM globals() OU "best_ckpt_path" NÃO EM globals() ENTÃO
+    LANÇAR ERRO RuntimeError("Rode a Célula 4 antes: gpt8 e best_ckpt_path não existem nes…")
+FIM SE
+// ------------------------------------------------- 1. o gpt8 em memória é o checkpoint ativo?
+ckpt_state ← torch.load(best_ckpt_path, map_location="cpu")["state_dict"]
+dig_ckpt ← _transformer_digest(ckpt_state)
+dig_mem ← _transformer_digest(gpt8.state_dict())
+dig_zs ← (_transformer_digest(gpt8_zeroshot.state_dict()) SE globals().get("gpt8_zeroshot") NÃO É NULO SENÃO NULO)
+REMOVER ckpt_state
+SE dig_mem ≠ dig_ckpt ENTÃO
+    LANÇAR ERRO RuntimeError(f'O gpt8 em memória não corresponde a {os.path.basename(best_ckp…)
+FIM SE
+SE dig_zs NÃO É NULO E dig_zs = dig_mem ENTÃO
+    LANÇAR ERRO RuntimeError("O gpt8 tem os mesmos pesos do zero-shot: o ajuste fino não f…")
+FIM SE
+EXIBIR f'[Célula Activates Checkpoint] gpt8 confere com {os.path.basena…
+// ------------------------------------------------------- 2. parâmetros medidos no modelo
+n_total ← sum([p.numel() PARA CADA p EM gpt8.parameters()])
+n_vqgan ← sum([p.numel() PARA CADA p EM gpt8.first_stage_model.parameters()])
+n_gpt ← sum([p.numel() PARA CADA p EM gpt8.transformer.parameters()])
+n_other ← n_total − n_vqgan − n_gpt
+n_mod_vqgan ← sum([1 PARA CADA _ EM gpt8.first_stage_model.modules()])
+n_mod_gpt ← sum([1 PARA CADA _ EM gpt8.transformer.modules()])
+FUNÇÃO _row(nome, status, n, n_mod)
+    RETORNAR {"Ambiente de Execução": ENV_LABEL, "Hardware_Tag": ENV_TAG, "Componente da Arquitetura GPTCast-8x8": nome, "Status no Fine-Tuning": sta…
+FIM FUNÇÃO
+rows ← [_row("Modelo completo (Estágio 1 + Estágio 2)", "VQGAN congelado + GPT-2 ajustado", n_total), _row(" -> Estágio 2: Transformer temporal (GPT-…
+SE n_other ENTÃO
+    EXECUTAR rows.append(_row(" -> Outros parâmetros", "conforme o GPTCast", n_other))
+FIM SE
+df_params ← pd.DataFrame(rows)
+EXECUTAR df_params.to_csv(os.path.join(RESULTS_ENV_DIR, f'arquitetura_parametros_gptcast8_{ENV_TAG}.csv'), index=FALSO)
+EXIBIR f'\n=== Parâmetros do GPTCast-8x8 ({ENV_LABEL}) ==='
+EXIBIR df_params.drop(columns=["Hardware_Tag"])
+// ------------------------------------------------------------ 3. log da sessão (acréscimo)
+gpu_log ← dict(globals().get("timing_gpu_log") OU {})
+SE NÃO gpu_log E os.path.exists(GPU_LOG_JSON) ENTÃO
+    USANDO open(GPU_LOG_JSON) COMO f
+        gpu_log ← json.load(f)
+    FIM USANDO
+FIM SE
+EXECUTAR gpu_log.update({"parametros_totais_modelo": int(n_total), "parametros_treinados_transformer": int(n_gpt), "parametros_congelados_vqgan": int…
+timing_gpu_log ← gpu_log
+USANDO open(GPU_LOG_JSON, "w") COMO f
+    EXECUTAR json.dump(gpu_log, f, indent=2, ensure_ascii=FALSO, default=str)
+FIM USANDO
+EXECUTAR pd.DataFrame([gpu_log]).to_csv(GPU_LOG_CSV, index=FALSO)
+// --------------------------------------------- 4. quadro-resumo: partições e tempos registrados
+resumo ← [("Hardware / ambiente de execução", ENV_LABEL, f'Tag: {ENV_TAG}'), ("Checkpoint ativo", os.path.basename(best_ckpt_path), gpu_log.get("fine…
+split ← getattr(globals().get("md_rmf"), "split_summary", NULO)
+SE split NÃO É NULO ENTÃO   // contagens do conjunto efetivamente carregado (Célula 3)
+    total ← int(split["Sequencias"].sum())
+    EXECUTAR resumo.append(("Sequências de 11 quadros a 2 km", f'{total}', f"passo de {gpu_log.get('passo_entre_janelas_min', '?')} min ent…))
+    PARA CADA (_, r) EM split.iterrows() FAÇA
+        EXECUTAR resumo.append((f" -> {r['Particao']}", f"{int(r['Sequencias'])} ({r['Proporcao_pct']}%)", f"{int(r['Meses'])} meses | {r['Primeira_j…
+    FIM PARA
+FIM SE
+SE os.path.exists(CSV_LOG_PATH) ENTÃO
+    df_etl ← pd.read_csv(CSV_LOG_PATH)   // só leitura: a Célula 2 é a dona deste arquivo
+    medidos ← df_etl["Tempo_Total_s"].dropna()
+    EXECUTAR resumo.append(("ETL medido (download + interpolação a 2 km)", f'{medidos.sum():.2f} s', f'{fmt_seconds(medidos.sum())} em {len(medidos)}…
+FIM SE
+ft_s ← gpu_log.get("finetuning_tempo_total_s")
+ep ← gpu_log.get("epocas_executadas")
+EXECUTAR resumo.append(("Fine-tuning na GPU", (f'{ft_s:.2f} s' SE isinstance(ft_s, (int, float)) SENÃO "não registrado"), f"{fmt_seconds(ft_s)} | {(e…
+(inf_ft, inf_zs) ← (gpu_log.get("inferencia_4passos_finetuned_s"), gpu_log.get("inferencia_4passos_zeroshot_s"))
+SE inf_ft NÃO É NULO E inf_zs NÃO É NULO ENTÃO
+    EXECUTAR resumo.append(("Inferência 4 passos (ajustado / zero-shot)", f'{inf_ft:.4f} s / {inf_zs:.4f} s', f"média de {gpu_log.get('inferencia_rep…
+FIM SE
+df_resumo ← pd.DataFrame(resumo, columns=["Métrica Consolidada (Série 2019–2025 IMERG-FR)", "Valor Numérico", "Tempo Formatado / Proporção"])
+EXECUTAR df_resumo.insert(0, "Ambiente_Tag", ENV_TAG)
+EXECUTAR df_resumo.to_csv(os.path.join(RESULTS_ENV_DIR, f'resumo_dataset_e_tempos_{ENV_TAG}_2019_2025.csv'), index=FALSO)
+EXIBIR f'\n=== Quadro-resumo: partições e tempos ({ENV_LABEL}) ==='
+EXIBIR df_resumo.drop(columns=["Ambiente_Tag"])
+SE os.path.exists(CSV_LOG_PATH) ENTÃO
+    EXIBIR f'\n=== Log de ETL por mês ({os.path.basename(CSV_LOG_PATH)}) ==…
+    EXECUTAR pd.set_option("display.max_rows", 35)
+    cols ← [c PARA CADA c EM ("Ano_Mes", "Origem", "Sequencias_Extraidas", "Tempo_Download_s", "Tempo_Processamento_2km_s", "Tempo_Total_Formatado", …
+    EXIBIR df_etl[cols]
+FIM SE

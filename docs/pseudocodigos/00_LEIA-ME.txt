@@ -1,0 +1,38 @@
+Pseudo-códigos do notebook F-PluvIA Metropolitan
+Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 19:00)
+Gerado em: 18/11/2026 19:01 | Ambiente: G4_RTX6000_Blackwell_95GB
+Tradução automática por regras (árvore sintática do Python): é fiel à estrutura do código, não um resumo.
+
+// Convenções: ← atribuição | FUNÇÃO/CLASSE/SE/PARA CADA/ENQUANTO/TENTAR … FIM | EXIBIR = mostra na saída
+// EXECUTAR = chama uma função | // = comentário do código original | e-mails e senhas ocultados.
+
+01. Célula de código nº 1 -> 01_celula_de_codigo_no_1.txt
+02. Célula de código nº 2 -> 02_celula_de_codigo_no_2.txt
+03. Célula 1 -> 03_celula_1.txt
+04. Célula 2 -> 04_celula_2.txt
+05. Célula 3 -> 05_celula_3.txt
+06. Célula 4 -> 06_celula_4.txt
+07. Célula 4.1 -> 07_celula_4_1.txt
+08. Célula 4.2 -> 08_celula_4_2.txt
+09. Célula 4.3 (Opcional - Fine-Tuning Suave - Adds Another Dimension of Search) -> 09_celula_4_3_opcional_fine_tuning_suave_adds_another_dimension_of_search.txt
+10. Célula 4.4 -> 10_celula_4_4.txt
+11. Célula 4.5 -> 11_celula_4_5.txt
+12. Célula (Activates Checkpoint) -> 12_celula_activates_checkpoint.txt
+13. Célula 5 -> 13_celula_5.txt
+14. Célula 6 -> 14_celula_6.txt
+15. Célula de código nº 15 -> 15_celula_de_codigo_no_15.txt
+16. Célula 7 -> 16_celula_7.txt
+17. Célula 8 -> 17_celula_8.txt
+18. Célula 9 -> 18_celula_9.txt
+19. Célula 10 -> 19_celula_10.txt
+20. Célula 11 -> 20_celula_11.txt
+21. Célula 12 -> 21_celula_12.txt
+22. Célula 12.1 -> 22_celula_12_1.txt
+23. Célula 13 -> 23_celula_13.txt
+24. Célula 13.1 -> 24_celula_13_1.txt
+25. Célula 13.2 -> 25_celula_13_2.txt
+26. Célula Extra 1 -> 26_celula_extra_1.txt
+27. Célula Deploy -> 27_celula_deploy.txt
+28. Célula Base (Pseudo-vista) -> 28_celula_base_pseudo_vista.txt
+29. Célula Deploy -> 29_celula_deploy.txt
+30. Célula de código nº 30 -> 30_celula_de_codigo_no_30.txt

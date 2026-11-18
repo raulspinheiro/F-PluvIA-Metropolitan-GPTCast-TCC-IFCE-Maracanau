@@ -1,0 +1,109 @@
+// ===== Célula 1 — pseudo-código =====
+// Célula 1: Preparação do Ambiente, Montagem do Google Drive (2019-2025) e Rastreabilidade por Hardware (G4 vs. H100)
+IMPORTAR functools
+IMPORTAR glob
+IMPORTAR os
+IMPORTAR shutil
+IMPORTAR subprocess
+IMPORTAR sys
+IMPORTAR drive DE google.colab
+// 1. Montagem do Google Drive
+EXECUTAR drive.mount("/content/drive")
+// 2. Definição estrita das pastas dedicadas para a Série Plurianual (2019-2025)
+BASE_WORK_DIR ← "/content/drive/MyDrive/GPTCast_RMF"
+OLD_SERIES_DIR ← os.path.join(BASE_WORK_DIR, "series_2020_2026_2km")
+SERIES_CACHE_DIR ← os.path.join(BASE_WORK_DIR, "series_2019_2025_2km")
+CHECKPOINTS_DIR ← os.path.join(BASE_WORK_DIR, "checkpoints_rmf_finetuned")
+GPM_RAW_TEMP_DIR ← "/content/tmp_gpm_raw/GPM"   // SSD local da VM (terminado em /GPM conforme exigido pela gpm-api)
+// Migração transparente caso a pasta antiga ainda exista no Drive
+SE os.path.exists(OLD_SERIES_DIR) E NÃO os.path.exists(SERIES_CACHE_DIR) ENTÃO
+    EXECUTAR os.rename(OLD_SERIES_DIR, SERIES_CACHE_DIR)
+FIM SE
+PARA CADA directory EM [BASE_WORK_DIR, SERIES_CACHE_DIR, CHECKPOINTS_DIR, GPM_RAW_TEMP_DIR] FAÇA
+    EXECUTAR os.makedirs(directory, exist_ok=VERDADEIRO)
+FIM PARA
+// 3. Clonagem do repositório oficial GPTCast e inclusão no path de execução
+SE NÃO os.path.exists("/content/GPTCast") ENTÃO
+    EXECUTAR subprocess.run(["git", "clone", "https://github.com/DSIP-FBK/GPTCast.git", "/content/GPTCast"], check=VERDADEIRO)
+FIM SE
+SE "/content/GPTCast" NÃO EM sys.path ENTÃO
+    EXECUTAR sys.path.append("/content/GPTCast")
+FIM SE
+// 4. Instalação consolidada de todas as dependências científicas e geoespaciais
+TENTAR
+    IMPORTAR cartopy
+    IMPORTAR geopandas
+    IMPORTAR gpm
+    IMPORTAR lightning
+    IMPORTAR pysteps
+    EXIBIR "[Setup] Bibliotecas científicas e geoespaciais já instaladas…"
+SE OCORRER ERRO ImportError
+    EXIBIR "[Setup] A instalar bibliotecas científicas, utilitários geoe…"
+    EXECUTAR subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pandas==2.2.3", "python-dateutil>=2.8.2,<3", "gpm-api", "xarray", "netCDF…
+FIM TENTAR
+// 5. Desbloqueio do PyTorch 2.6+ para carregar checkpoints do Zenodo/Lightning
+IMPORTAR torch
+os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] ← "1"
+SE NÃO getattr(torch.load, "_is_patched_for_gptcast", FALSO) ENTÃO
+    _orig_torch_load ← torch.load
+    // decorador: functools.wraps(_orig_torch_load)
+    FUNÇÃO _trusted_torch_load(*args, **kwargs)
+        kwargs["weights_only"] ← FALSO
+        RETORNAR _orig_torch_load(*args, **kwargs)
+    FIM FUNÇÃO
+    _trusted_torch_load._is_patched_for_gptcast ← VERDADEIRO
+    torch.load ← _trusted_torch_load
+    torch.serialization.load ← _trusted_torch_load
+FIM SE
+// 6. Deteção de Hardware (G4 Blackwell vs. H100 Hopper vs. CPU) e Isolamento de Artefatos
+gpu_available ← torch.cuda.is_available()
+SE gpu_available ENTÃO
+    EXECUTAR torch.set_float32_matmul_precision("high")
+    torch.backends.cudnn.benchmark ← VERDADEIRO
+    gpu_device_name ← torch.cuda.get_device_name(0)
+    vram_gb ← torch.cuda.get_device_properties(0).total_memory / 1024 ^ 3
+    bf16_ok ← torch.cuda.is_bf16_supported()
+    SE "H100" EM gpu_device_name.upper() ENTÃO
+        ENV_TAG ← "H100_Hopper_80GB"
+        ENV_LABEL ← f'{gpu_device_name} ({vram_gb:.1f} GB)'
+    SENÃO SE "6000" EM gpu_device_name.upper() OU "BLACKWELL" EM gpu_device_name.upper() ENTÃO
+        ENV_TAG ← "G4_RTX6000_Blackwell_95GB"
+        ENV_LABEL ← f'{gpu_device_name} ({vram_gb:.1f} GB)'
+    SENÃO SE "A100" EM gpu_device_name.upper() ENTÃO
+        ENV_TAG ← f'A100_{int(round(vram_gb))}GB'
+        ENV_LABEL ← f'{gpu_device_name} ({vram_gb:.1f} GB)'
+    SENÃO SE "L4" EM gpu_device_name.upper() ENTÃO
+        ENV_TAG ← "L4_Ada_24GB"
+        ENV_LABEL ← f'{gpu_device_name} ({vram_gb:.1f} GB)'
+    SENÃO
+        ENV_TAG ← gpu_device_name.replace(" ", "_").replace("-", "_") + f'_{int(round(vram_gb))}GB'
+        ENV_LABEL ← f'{gpu_device_name} ({vram_gb:.1f} GB)'
+    FIM SE
+SENÃO
+    gpu_device_name ← "Nenhuma GPU detetada (CPU Padrão)"
+    vram_gb ← 0.0
+    bf16_ok ← FALSO
+    ENV_TAG ← "CPU_Padrao"
+    ENV_LABEL ← "CPU Padrão (Google Colab VM)"
+FIM SE
+// Subpastas isoladas por Ambiente de Execução (evita sobrescrever pesos e tabelas entre G4 e H100)
+CHECKPOINTS_ENV_DIR ← os.path.join(CHECKPOINTS_DIR, ENV_TAG)
+RESULTS_ENV_DIR ← os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}')
+EXECUTAR os.makedirs(CHECKPOINTS_ENV_DIR, exist_ok=VERDADEIRO)
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+// Preserva na subpasta da G4 o checkpoint já treinado na raiz de CHECKPOINTS_DIR
+SE ENV_TAG = "G4_RTX6000_Blackwell_95GB" ENTÃO
+    PARA CADA ckpt_f EM glob.glob(os.path.join(CHECKPOINTS_DIR, "*.ckpt")) FAÇA
+        dst_ckpt ← os.path.join(CHECKPOINTS_ENV_DIR, os.path.basename(ckpt_f))
+        SE NÃO os.path.exists(dst_ckpt) ENTÃO
+            EXECUTAR shutil.copy2(ckpt_f, dst_ckpt)
+        FIM SE
+    FIM PARA
+FIM SE
+EXIBIR " === Ambiente Model_Annual_Full_Training_Series (2019–2025) …"
+EXIBIR f'Diretório Base: {BASE_WORK_DIR}'
+EXIBIR f'Cache da Série (2 km): {SERIES_CACHE_DIR}'
+EXIBIR f'Checkpoints do Ambiente ({ENV_TAG}): {CHECKPOINTS_ENV_DIR}'
+EXIBIR f'Resultados do Ambiente ({ENV_TAG}): {RESULTS_ENV_DIR}'
+EXIBIR f'Diretório Temporário Local: {GPM_RAW_TEMP_DIR}'
+EXIBIR f'Acelerador Ativo: {gpu_device_name} | Tag: {ENV_TAG} | VRAM: {…

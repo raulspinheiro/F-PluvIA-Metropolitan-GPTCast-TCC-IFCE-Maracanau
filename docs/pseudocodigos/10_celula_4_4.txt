@@ -1,0 +1,225 @@
+// ===== Célula 4.4 — pseudo-código =====
+// Célula 4.4: Teto de Reconstrução da VQGAN — codifica e decodifica pela VQGAN congelada quadros OBSERVADOS da
+// validação de 2024, sem previsão nenhuma, e compara a reconstrução com o original (CSI, BIAS, MAE, PCC, FSS e SAL).
+// Responde: a perda de qualidade dos dois GPTCast já acontece na tradução IMERG -> tokens -> IMERG (gargalo da
+// VQGAN) ou na geração autorregressiva do Transformer? Usa só 2024: o teste de 2025 continua intocado.
+// Rode depois da Célula 4 e das Células 8 e 11 (SAL e FSS). Não altera modelo, checkpoints nem previsões.
+IMPORTAR os
+IMPORTAR textwrap
+IMPORTAR time
+IMPORTAR matplotlib.pyplot (como plt)
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR torch
+IMPORTAR dbz_to_rainfall DE gptcast.utils.converters
+// ------------------------------------------------------------------ 1. parâmetros
+N_MAX ← NULO   // None = todas as janelas de validação de 2024
+LOTE ← 16   // janelas por lote na GPU (11 quadros cada)
+SAL_STRIDE ← 2   // SAL em 1 de cada SAL_STRIDE janelas (o SAL é a etapa mais lenta)
+THRESHOLDS ← (0.5, 1.0, 5.0, 10.0)
+STEP_MIN ← 30
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+faltam ← [n PARA CADA n EM ("gpt8", "md_rmf", "RESULTS_ENV_DIR", "CONTEXT_STEPS", "FORECAST_STEPS") SE n NÃO EM globals()]
+SE faltam ENTÃO
+    LANÇAR ERRO RuntimeError(f"Rode antes a Célula 4. Faltam: {', '.join(faltam)}")
+FIM SE
+SE NÃO torch.cuda.is_available() ENTÃO
+    LANÇAR ERRO RuntimeError("A Célula 4.4 passa milhares de quadros pela VQGAN: ative a G…")
+FIM SE
+DEVICE ← "cuda"
+torch.backends.cuda.matmul.allow_tf32 ← VERDADEIRO
+torch.backends.cudnn.allow_tf32 ← VERDADEIRO
+torch.backends.cudnn.benchmark ← VERDADEIRO
+// VQGAN congelada (VAEGANVQ do pacote gptcast): idêntica no Zero-Shot e no Fine-Tuned. Atenção: o GPTCast troca o
+// train() da VQGAN por uma função que devolve o próprio argumento, então .eval() nela devolve False, e não o modelo.
+// Por isso não se encadeia .eval() aqui; a VQGAN já fica em modo de avaliação desde a criação do GPTCast.
+vq ← gpt8.first_stage_model
+EXECUTAR vq.to(DEVICE)
+SE NÃO hasattr(vq, "encode") ENTÃO
+    LANÇAR ERRO RuntimeError("A VQGAN do GPTCast não expõe encode() nesta versão do pacote…")
+FIM SE
+FUNÇÃO _metodos(obj)
+    RETORNAR sorted([n PARA CADA n EM dir(obj) SE NÃO n.startswith("_") E callable(getattr(obj, n, NULO))])
+FIM FUNÇÃO
+// No código do GPTCast (gptcast/models/vaegan.py), a VQGAN decodifica com decode(z) = decoder(emb_to_z(z)), que é o
+// caminho usado na previsão (decode_to_img). As alternativas abaixo só entram se outra versão do pacote mudar isso.
+// O caminho usado é impresso na saída.
+FUNÇÃO _escolher_decodificador()
+    PARA CADA nome EM ("decode", "decode_quant", "decode_from_quant", "decode_latent") FAÇA
+        SE callable(getattr(vq, nome, NULO)) ENTÃO
+            RETORNAR (f'first_stage_model.{nome}(quant)', FUNÇÃO(q, idx) ↦ getattr(vq, nome)(q))
+        FIM SE
+    FIM PARA
+    SE isinstance(getattr(vq, "decoder", NULO), torch.nn.Module) ENTÃO
+        pq ← getattr(vq, "post_quant_conv", NULO)
+        SE isinstance(pq, torch.nn.Module) ENTÃO
+            RETORNAR ("first_stage_model.decoder(post_quant_conv(quant))", FUNÇÃO(q, idx) ↦ vq.decoder(pq(q)))
+        FIM SE
+        RETORNAR ("first_stage_model.decoder(quant)", FUNÇÃO(q, idx) ↦ vq.decoder(q))
+    FIM SE
+    SE callable(getattr(gpt8, "decode_to_img", NULO)) ENTÃO
+        RETORNAR ("gpt8.decode_to_img(índices, forma)", FUNÇÃO(q, idx) ↦ gpt8.decode_to_img(idx, q.shape))
+    FIM SE
+    LANÇAR ERRO RuntimeError(f"""Não encontrei como decodificar a VQGAN. Métodos da VQGAN: {_…)
+FIM FUNÇÃO
+(CAMINHO_DECODE, _decode) ← _escolher_decodificador()
+ds ← md_rmf.splits["val"]
+S ← (ds.sequences_dbz SE N_MAX É NULO SENÃO ds.sequences_dbz[:N_MAX])
+(N, T, H, W) ← S.shape
+(C, F) ← (int(CONTEXT_STEPS), int(FORECAST_STEPS))
+ts ← np.asarray(ds.timestamps)[:N]
+FUNÇÃO _rain(dbz)
+    RETORNAR np.clip(dbz_to_rainfall(np.clip(np.asarray(dbz, dtype=np.float64), 0.0, 60.0)), 0.0, 205.0).astype(np.float32)
+FIM FUNÇÃO
+// ------------------------------------------------------------------ 2. reconstrução na GPU
+// Mesma normalização do treino (Célula 3): dBZ [0, 60] -> [-1, 1]. Dois modos:
+// - quadro isolado: cada quadro passa sozinho pela VQGAN (fidelidade pura da VQGAN);
+// - empilhado: os 11 quadros da janela empilhados na vertical, como na tokenização da previsão.
+// decorador: torch.inference_mode()
+FUNÇÃO reconstruir(lote_dbz, empilhado)
+    x ← torch.from_numpy(np.clip(lote_dbz, 0, 60) / 30.0 − 1.0).float().to(DEVICE, non_blocking=VERDADEIRO)   // (B, T, H, W)
+    (b, t, h, w) ← x.shape
+    x ← (x.reshape(b, 1, t × h, w) SE empilhado SENÃO x.reshape(b × t, 1, h, w))
+    (quant, _, info) ← vq.encode(x)
+    idx ← (info.view(quant.shape[0], −1) SE torch.is_tensor(info) SENÃO (info[2].view(quant.shape[0], −1) SE isinstance(info, (tuple, list)) SENÃO NU…
+    rec ← _decode(quant, idx)
+    rec ← (rec[0] SE isinstance(rec, (tuple, list)) SENÃO rec).float().clamp(−1, 1)
+    RETORNAR rec.reshape(b, t, h, w) + 1.0 × 30.0.cpu().numpy()
+FIM FUNÇÃO
+obs_t ← _rain(S[(:, C:C + F)])   // quadros-alvo observados (N, 4, H, W), mm/h
+rec_iso ← np.empty_like(obs_t)
+rec_stk ← np.empty_like(obs_t)
+EXECUTAR torch.cuda.reset_peak_memory_stats(0)
+EXECUTAR torch.cuda.synchronize()
+t0 ← time.perf_counter()
+PARA CADA a EM range(0, N, LOTE) FAÇA
+    bloco ← np.asarray(S[a:a + LOTE], dtype=np.float32)
+    rec_iso[a:a + LOTE] ← _rain(reconstruir(bloco, FALSO)[(:, C:C + F)])
+    rec_stk[a:a + LOTE] ← _rain(reconstruir(bloco, VERDADEIRO)[(:, C:C + F)])
+FIM PARA
+EXECUTAR torch.cuda.synchronize()
+t_rec ← time.perf_counter() − t0
+pers ← np.repeat(_rain(S[(:, C − 1:C)]), F, axis=1)   // persistência do último quadro de contexto
+METODOS ← {"Reconstrução VQGAN (quadro isolado)": rec_iso, "Reconstrução VQGAN (empilhada)": rec_stk, "Persistência (referência)": pers}
+// ------------------------------------------------------------------ 3. métricas por pixel
+FUNÇÃO _linha(o, p, nome, rotulo)
+    (o64, p64) ← (o.astype(np.float64), p.astype(np.float64))
+    r ← {"Método": nome, "Quadros": rotulo, "MAE [mm/h]": float(np.mean(np.abs(p64 − o64))), "PCC": float(np.corrcoef(o64.ravel(), p64.ravel())[(0, 1…
+    PARA CADA thr EM THRESHOLDS FAÇA
+        (ob, pb) ← (o ≥ thr, p ≥ thr)
+        (tp, fp, fn) ← (float(np.sum(ob & pb)), float(np.sum(~ob & pb)), float(np.sum(ob & ~pb)))
+        r[f'CSI @ {thr}'] ← (tp / tp + fp + fn SE tp + fp + fn SENÃO np.nan)
+        r[f'BIAS @ {thr}'] ← (tp + fp / tp + fn SE tp + fn SENÃO np.nan)
+    FIM PARA
+    RETORNAR r
+FIM FUNÇÃO
+linhas ← []
+PARA CADA (nome, P) EM METODOS.items() FAÇA
+    SE nome.startswith("Persist") ENTÃO
+        PARA CADA s EM range(F) FAÇA
+            EXECUTAR linhas.append(_linha(obs_t[(:, s)], P[(:, s)], nome, f'+{STEP_MIN * (s + 1)} min'))
+        FIM PARA
+    SENÃO
+        EXECUTAR linhas.append(_linha(obs_t, P, nome, "todos os alvos"))
+    FIM SE
+FIM PARA
+df ← pd.DataFrame(linhas)
+csi_iso ← float(df.loc[(df["Método"].str.contains("isolado"), "CSI @ 0.5")].iloc[0])
+csi_stk ← float(df.loc[(df["Método"].str.contains("empilhada"), "CSI @ 0.5")].iloc[0])
+pers_csi ← df.loc[(df["Método"].str.startswith("Persist"), "CSI @ 0.5")].to_numpy(float)
+csi_rec ← max(csi_iso, csi_stk)
+// ------------------------------------------------------------------ 4. FSS e SAL (Células 11 e 8)
+EXIBIR f'[Célula 4.4] Reconstrução de {N} janelas ({N * F} quadros-alvo…
+df_fss ← (fss_over_set(obs_t, METODOS, thr=0.5) SE "fss_over_set" EM globals() SENÃO pd.DataFrame())
+sel ← slice(NULO, NULO, SAL_STRIDE)
+df_sal ← (sal_over_set(obs_t[sel], [n: p[sel] PARA CADA (n, p) EM METODOS.items()]) SE "sal_over_set" EM globals() SENÃO pd.DataFrame())
+FUNÇÃO _sal(nome, col)
+    SE NÃO len(df_sal) OU col NÃO EM df_sal.columns ENTÃO
+        RETORNAR np.nan
+    FIM SE
+    RETORNAR float(pd.to_numeric(df_sal.loc[(df_sal["Modelo"] = nome, col)], errors="coerce").median())
+FIM FUNÇÃO
+S_rec ← np.nanmin([_sal("Reconstrução VQGAN (quadro isolado)", "S mediana"), _sal("Reconstrução VQGAN (empilhada)", "S mediana")])
+// ------------------------------------------------------------------ 5. diagnóstico
+_c ← FUNÇÃO(v) ↦ f'{v:.3f}'.replace(".", ",")
+SE csi_rec < pers_csi[0] ENTÃO
+    diag ← f'A VQGAN é um gargalo: reconstruindo quadros observados, sem pr…
+SENÃO SE csi_rec < pers_csi[0] + 0.05 ENTÃO
+    diag ← f'A VQGAN limita, mas não explica tudo sozinha: a reconstrução (…
+SENÃO
+    diag ← f'A VQGAN reconstrói bem: CSI {_c(csi_rec)}, acima da persistênc…
+FIM SE
+SE np.isfinite(S_rec) E S_rec < −0.3 ENTÃO
+    diag ← diag + f' O componente S do SAL da reconstrução ({_c(S_rec)}) é forteme…
+SENÃO SE np.isfinite(S_rec) ENTÃO
+    diag ← diag + f' O componente S do SAL da reconstrução ({_c(S_rec)}) é pequeno…
+FIM SE
+SE abs(csi_iso − csi_stk) > 0.02 ENTÃO
+    diag ← diag + f' O empilhamento muda a reconstrução (isolado {_c(csi_iso)} × e…
+FIM SE
+// ------------------------------------------------------------------ 6. figura
+fig ← plt.figure(figsize=(17, 6.2))
+gs ← fig.add_gridspec(1, 4, width_ratios=[1.6, 1, 1, 1], wspace=0.25)
+EXECUTAR fig.suptitle("Teto de Reconstrução da VQGAN", fontsize=16, fontweight="bold", y=1.0)
+ax ← fig.add_subplot(gs[(0, 0)])
+hz ← np.arange(1, F + 1) × STEP_MIN
+EXECUTAR ax.plot(hz, pers_csi, "s:", color="#7f7f7f", lw=2, label="Persistência (validação 2024)")
+EXECUTAR ax.axhline(csi_iso, color="#2ca02c", lw=2.2, label=f'Reconstrução isolada: {csi_iso:.3f}')
+EXECUTAR ax.axhline(csi_stk, color="#9467bd", lw=2.2, ls="--", label=f'Reconstrução empilhada: {csi_stk:.3f}')
+r12 ← globals().get("CELL12_FULL_2025_RESULTS")
+SE isinstance(r12, dict) E "ft_rain" EM r12 ENTÃO
+    PARA CADA (k, nome, cor, mk) EM (("ft_rain", "Fine-Tuned", "#d62728", "o"), ("zs_rain", "Zero-Shot", "#ff7f0e", "v")) FAÇA
+        v ← [_linha(r12["obs_rain"][(:, s)], r12[k][(:, s)], nome, "")["CSI @ 0.5"] PARA CADA s EM range(F)]
+        EXECUTAR ax.plot(hz, v, marker=mk, color=cor, lw=1.2, alpha=0.55, label=f'GPTCast {nome} (teste 2025, referência)')
+    FIM PARA
+FIM SE
+EXECUTAR ax.set_title("CSI $\geq$ 0,5 mm/h  $(\mathrm{CSI} = \frac{TP}{TP + FP + FN…", fontweight="bold")
+EXECUTAR ax.set_xlabel("Horizonte (min)")
+EXECUTAR ax.set_ylabel("CSI")
+EXECUTAR ax.set_xticks(hz)
+EXECUTAR ax.grid(VERDADEIRO, ls=":", alpha=0.6)
+EXECUTAR ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, −0.14), ncol=2)   // abaixo do gráfico: não cobre as linhas
+i_ex ← int(np.argmax(obs_t[(:, 0)] ≥ 0.5.sum(axis=(1, 2))))   // janela com maior área de chuva no 1º alvo
+vmax ← (float(np.percentile(obs_t[(i_ex, 0)][obs_t[(i_ex, 0)] > 0], 99)) SE obs_t[(i_ex, 0)] > 0.any() SENÃO 10.0)
+PARA CADA (j, (img, tit)) EM enumerate(((obs_t[(i_ex, 0)], "Observado (IMERG)"), (rec_iso[(i_ex, 0)], "Reconstrução isolada"), (rec_stk[(i_ex, 0)], "…
+    a ← fig.add_subplot(gs[(0, j + 1)])
+    im ← a.imshow(img, cmap="turbo", vmin=0, vmax=vmax)
+    EXECUTAR a.set_title(tit, fontweight="bold", fontsize=11)
+    EXECUTAR a.set_xticks([])
+    EXECUTAR a.set_yticks([])
+FIM PARA
+EXECUTAR fig.colorbar(im, ax=fig.axes[1:], shrink=0.75, label="mm/h")
+png ← os.path.join(RESULTS_ENV_DIR, f'teto_reconstrucao_vqgan_validacao2024_{ENV_TAG}.png')
+EXECUTAR fig.savefig(png, dpi=200, bbox_inches="tight")
+EXIBIR
+// ------------------------------------------------------------------ 7. saída de texto e arquivos
+EXECUTAR df.round(4).to_csv(os.path.join(RESULTS_ENV_DIR, f'teto_vqgan_metricas_validacao2024_{ENV_TAG}.csv'), index=FALSO)
+SE len(df_fss) ENTÃO
+    EXECUTAR df_fss.to_csv(os.path.join(RESULTS_ENV_DIR, f'teto_vqgan_fss_validacao2024_{ENV_TAG}.csv'), index=FALSO)
+FIM SE
+SE len(df_sal) ENTÃO
+    EXECUTAR df_sal.to_csv(os.path.join(RESULTS_ENV_DIR, f'teto_vqgan_sal_validacao2024_{ENV_TAG}.csv'), index=FALSO)
+FIM SE
+EXIBIR "=== Contexto (F-PluvIA Metropolitan — Célula 4.4, teto de re…"
+PARA CADA ln EM (f'Ambiente: {ENV_LABEL}  |  CUDA {torch.version.cuda}  |  VQGAN …, f'Dados: validação 2024 — {N} janelas, {N * F} quadros-alvo (pos……
+    EXIBIR "  " + ln
+FIM PARA
+EXIBIR f'\n[Célula 4.4] Figura -> {png}\n'
+cols ← ["Método", "Quadros", "CSI @ 0.5", "CSI @ 1.0", "CSI @ 5.0", "CSI @ 10.0", "BIAS @ 0.5", "MAE [mm/h]", "PCC", "Volume Prev/Obs"]
+EXIBIR df[cols].round(4).set_index(["Método", "Quadros"]).to_string()
+SE len(df_fss) ENTÃO
+    cf ← [c PARA CADA c EM df_fss.columns SE c.startswith("FSS @")][:6] + [c PARA CADA c EM df_fss.columns SE "Escala" EM c]
+    EXIBIR " --- FSS (≥ 0,5 mm/h) ---"
+    EXIBIR df_fss.set_index(["Modelo", "Lead Time"])[cf].round(4).to_string()
+FIM SE
+SE len(df_sal) ENTÃO
+    cs ← [c PARA CADA c EM ("S mediana", "A mediana", "L mediana", "Shift_km mediana", "Razao_Volume mediana") SE c EM df_sal.columns]
+    EXIBIR f'\n--- SAL (mediana; 1 de cada {SAL_STRIDE} janelas) ---'
+    EXIBIR df_sal.set_index(["Modelo", "Lead Time"])[cs].to_string()
+FIM SE
+EXIBIR " Na reconstrução, "Lead Time" é só a posição do quadro-alvo:…"
+EXIBIR " === Diagnóstico automático (regras desta célula) ==="
+EXIBIR textwrap.fill(diag, 110)
+EXIBIR textwrap.fill("Regras: compara o melhor CSI ≥ 0,5 mm/h da reconstrução com …", 110)
+CELL4_4_TETO_VQGAN ← {"csi05_reconstrucao_isolada": csi_iso, "csi05_reconstrucao_empilhada": csi_stk, "csi05_persistencia_por_horizonte": pers_csi.to…

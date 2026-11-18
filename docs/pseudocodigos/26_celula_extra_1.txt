@@ -1,0 +1,254 @@
+// ===== Célula Extra 1 — pseudo-código =====
+// Célula Extra 1: Rastreabilidade do Código Original do GPTCast (DSIP-FBK/GPTCast, Franch et al., 2024)
+// Destaca, com texto vermelho (#CC0000) sobre fundo amarelo (#FFEB3B), cada nome que vem da biblioteca
+// gptcast instalada, mantendo a paleta de sintaxe do editor do Colab. Os nomes são lidos do próprio
+// pacote instalado (análise do código-fonte, sem importar nada), não de uma lista escrita à mão.
+IMPORTAR ast
+IMPORTAR builtins
+IMPORTAR html
+IMPORTAR importlib.util
+IMPORTAR io
+IMPORTAR os
+IMPORTAR re
+IMPORTAR time
+IMPORTAR tokenize
+IMPORTAR token (como tok_mod)
+IMPORTAR Path DE pathlib
+IMPORTAR pandas (como pd)
+IMPORTAR HTML, display DE IPython.display
+t_ini ← time.perf_counter()
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(globals().get("SERIES_CACHE_DIR", "/content"), f'resultados_{ENV_TAG}'))
+NOTEBOOK_PATH ← NULO   // opcional: caminho de um .ipynb; se None, usa as células executadas nesta sessão
+MOSTRAR_CODIGO ← VERDADEIRO   // False = só a tabela-resumo
+(COR_TEXTO, COR_FUNDO) ← ("#CC0000", "#FFEB3B")
+// ------------------------------------------------- 1. nomes do pacote gptcast instalado
+FUNÇÃO nomes_do_pacote(pacote)
+    // Lê os .py do pacote e devolve módulos, classes/funções de topo e métodos/atributos das classes.
+    spec ← importlib.util.find_spec(pacote)
+    SE spec É NULO OU NÃO spec.submodule_search_locations ENTÃO
+        LANÇAR ERRO RuntimeError("Pacote gptcast não encontrado. Rode a Célula 1 (instalação) …")
+    FIM SE
+    raiz ← Path(list(spec.submodule_search_locations)[0])
+    (modulos, topo, membros) ← ({pacote}, set(), set())
+    PARA CADA py EM raiz.rglob("*.py") FAÇA
+        partes ← py.relative_to(raiz.parent).with_suffix("").parts
+        EXECUTAR modulos.update([p PARA CADA p EM partes SE p ≠ "__init__"])
+        TENTAR
+            arvore ← ast.parse(py.read_text(encoding="utf-8"))
+        SE OCORRER ERRO (SyntaxError, UnicodeDecodeError)
+            PASSAR À PRÓXIMA ITERAÇÃO
+        FIM TENTAR
+        PARA CADA no EM arvore.body FAÇA
+            SE isinstance(no, (ast.FunctionDef, ast.ClassDef)) E NÃO no.name.startswith("_") ENTÃO
+                EXECUTAR topo.add(no.name)
+            FIM SE
+            SE isinstance(no, ast.ClassDef) ENTÃO
+                PARA CADA sub EM ast.walk(no) FAÇA
+                    SE isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)) E NÃO sub.name.startswith("_") ENTÃO
+                        EXECUTAR membros.add(sub.name)
+                    FIM SE
+                    // atributos de instância só das classes de modelo (GPTCast, VAEGAN...), não de dados/utilitários
+                    SE py.parent.name = "models" E isinstance(sub, ast.Attribute) E isinstance(sub.value, ast.Name) E sub.value.id = "self" E isinsta…
+                        EXECUTAR membros.add(sub.attr)
+                    FIM SE
+                FIM PARA
+            FIM SE
+        FIM PARA
+    FIM PARA
+    // Métodos com nomes genéricos (str.encode, bytes.decode, forward do PyTorch, ganchos do Lightning)
+    // não identificam o GPTCast quando aparecem depois de um ponto: ficam de fora.
+    genericos ← set(dir(str)) | set(dir(bytes)) | set(dir(dict)) | set(dir(list)) | set(dir(object))
+    PARA CADA (mod, attr) EM (("torch.nn", "Module"), ("torch", "Tensor"), ("numpy", "ndarray"), ("pandas", "DataFrame"), ("pandas", "Series"), ("xar…
+        TENTAR
+            genericos ← genericos | set(dir(getattr(importlib.import_module(mod), attr)))
+        SE OCORRER ERRO Exception
+            PASSAR À PRÓXIMA ITERAÇÃO
+        FIM TENTAR
+    FIM PARA
+    PARA CADA mod EM ("lightning.pytorch", "pytorch_lightning") FAÇA
+        TENTAR
+            genericos ← genericos | set(dir(importlib.import_module(mod).LightningModule))
+            INTERROMPER LAÇO
+        SE OCORRER ERRO Exception
+            PASSAR À PRÓXIMA ITERAÇÃO
+        FIM TENTAR
+    FIM PARA
+    genericos ← genericos | {"forward", "training_step", "validation_step", "test_step", "configure_optimizers", "shared_step", "get_input", "log_ima…
+    RETORNAR {"modulos": modulos, "topo": topo, "membros": membros − genericos, "raiz": str(raiz)}
+FIM FUNÇÃO
+GPTCAST ← nomes_do_pacote()
+// ---------------------------------------------------------- 2. células a analisar
+_ROTULO ← re.compile("^#\s*(C[ée]lula\s+[^:\n]+)", re.M)
+FUNÇÃO _rotulo(src, padrao)
+    m ← _ROTULO.search(src)
+    RETORNAR (m.group(1).strip() SE m SENÃO padrao)
+FIM FUNÇÃO
+FUNÇÃO celulas()
+    // Células desta sessão (última execução de cada uma, pelo rótulo '# Célula X:') ou de um .ipynb.
+    SE NOTEBOOK_PATH ENTÃO
+        IMPORTAR json
+        USANDO open(NOTEBOOK_PATH, encoding="utf-8") COMO f
+            nb ← json.load(f)
+        FIM USANDO
+        out ← []
+        PARA CADA (i, c) EM enumerate(nb.get("cells", [])) FAÇA
+            SE c.get("cell_type") = "code" ENTÃO
+                src ← ("".join(c.get("source", [])) SE isinstance(c.get("source"), list) SENÃO str(c.get("source", "")))
+                SE src.strip() ENTÃO
+                    EXECUTAR out.append((_rotulo(src, f'Célula de código nº {i + 1}'), src))
+                FIM SE
+            FIM SE
+        FIM PARA
+        RETORNAR out
+    FIM SE
+    ip ← get_ipython()
+    hist ← (ip.user_ns.get("_ih", []) SE ip NÃO É NULO SENÃO [])
+    ultima ← {}
+    PARA CADA (i, src) EM enumerate(hist) FAÇA
+        SE isinstance(src, str) E src.strip() ENTÃO
+            ultima[_rotulo(src, f'Execução In[{i}] sem rótulo')] ← (i, src)
+        FIM SE
+    FIM PARA
+    RETORNAR [(k, s) PARA CADA (k, (i, s)) EM sorted(ultima.items(), key=FUNÇÃO(kv) ↦ kv[1][0])]
+FIM FUNÇÃO
+// ------------------------------------------- 3. privacidade: nada sensível vai para a saída
+_EMAIL ← re.compile("[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+_SEGREDO ← re.compile("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s*=\s*…", re.I)
+FUNÇÃO ocultar(src)
+    src ← _SEGREDO.sub(FUNÇÃO(m) ↦ f'{m.group(1)}{m.group(2)}[OCULTO]{m.group(2)}', src)
+    RETORNAR _EMAIL.sub("[e-mail oculto]", src)
+FIM FUNÇÃO
+// -------------------------------------------------------------- 4. destaque sintático
+KW_FLUXO ← {"import", "from", "as", "return", "if", "elif", "else", "for", "while", "try", "except", "finally", "with", "raise", "pass", "break", "co…
+KW_DECL ← {"def", "class", "lambda", "None", "True", "False", "and", "or", "not", "in", "is", "global", "nonlocal", "assert", "del", "async", "await"…
+BUILTINS ← set(dir(builtins))
+FUNÇÃO importados_do_gptcast(src)
+    // Nomes que a célula traz do gptcast (inclusive apelidos de 'as').
+    nomes ← set()
+    TENTAR
+        arvore ← ast.parse(src)
+    SE OCORRER ERRO SyntaxError
+        arvore ← NULO
+    FIM TENTAR
+    SE arvore NÃO É NULO ENTÃO
+        PARA CADA no EM ast.walk(arvore) FAÇA
+            SE isinstance(no, ast.ImportFrom) E no.module OU "".split(".")[0] = "gptcast" ENTÃO
+                EXECUTAR nomes.update([a.asname OU a.name PARA CADA a EM no.names])
+            SENÃO SE isinstance(no, ast.Import) ENTÃO
+                EXECUTAR nomes.update([a.asname OU a.name.split(".")[0] PARA CADA a EM no.names SE a.name.split(".")[0] = "gptcast"])
+            FIM SE
+        FIM PARA
+    FIM SE
+    RETORNAR nomes
+FIM FUNÇÃO
+FUNÇÃO destacar(src, nomes_sessao)
+    // Devolve (html, ocorrências, nomes encontrados, nomes do gptcast reatribuídos no notebook).
+    linhas ← src.splitlines(keepends=VERDADEIRO)
+    offs ← [0]
+    PARA CADA ln EM linhas FAÇA
+        EXECUTAR offs.append(offs[−1] + len(ln))
+    FIM PARA
+    (partes, achados, alterados) ← ([], [], set())
+    (pos, ant, ant2, linha_import, raiz_import) ← (0, "", "", FALSO, "")
+    toks ← []
+    TENTAR
+        toks ← list(tokenize.generate_tokens(io.StringIO(src).readline))
+    SE OCORRER ERRO (tokenize.TokenError, IndentationError, SyntaxError)
+        (nada a fazer)
+    FIM TENTAR
+    PARA CADA (j, (tt, ts, (sr, sc), (er, ec), _)) EM enumerate(toks) FAÇA
+        SE tt EM (tok_mod.ENDMARKER, tok_mod.INDENT, tok_mod.DEDENT) OU sr − 1 ≥ len(offs) − 1 ENTÃO
+            PASSAR À PRÓXIMA ITERAÇÃO
+        FIM SE
+        SE tt EM (tok_mod.NEWLINE, tok_mod.NL) ENTÃO
+            linha_import ← FALSO
+        FIM SE
+        (a, b) ← (offs[sr − 1] + sc, offs[er − 1] + ec)
+        SE a > pos ENTÃO
+            EXECUTAR partes.append(html.escape(src[pos:a]))
+        FIM SE
+        e ← html.escape(ts)
+        SE tt = tok_mod.NAME ENTÃO
+            SE linha_import E ant EM ("from", "import") ENTÃO
+                raiz_import ← ts
+            FIM SE
+            upstream ← (linha_import E raiz_import = "gptcast" E (ts EM GPTCAST["modulos"] OU ts EM GPTCAST["topo"])) OU (ant NÃO EM (".", "def", "cl…
+            SE ts EM ("import", "from") E ant = "" ENTÃO
+                (linha_import, raiz_import) ← (VERDADEIRO, "")
+            FIM SE
+            SE upstream ENTÃO
+                prox ← (toks[j + 1][1] SE j + 1 < len(toks) SENÃO "")
+                SE ant = "." E ant2 EM nomes_sessao E prox = "=" ENTÃO
+                    EXECUTAR alterados.add(f'{ant2}.{ts}')
+                    EXECUTAR partes.append(f'<span class="gc-up gc-mod" title="nome do GPTCast reatribuído …)
+                SENÃO
+                    EXECUTAR partes.append(f'<span class="gc-up">{e}</span>')
+                FIM SE
+                EXECUTAR achados.append(ts)
+            SENÃO SE ts EM KW_FLUXO ENTÃO
+                EXECUTAR partes.append(f'<span class="k-fl">{e}</span>')
+            SENÃO SE ts EM KW_DECL ENTÃO
+                EXECUTAR partes.append(f'<span class="k-dc">{e}</span>')
+            SENÃO SE ant = "class" ENTÃO
+                EXECUTAR partes.append(f'<span class="k-cl">{e}</span>')
+            SENÃO SE ant = "def" OU ts EM BUILTINS ENTÃO
+                EXECUTAR partes.append(f'<span class="k-fn">{e}</span>')
+            SENÃO
+                EXECUTAR partes.append(e)
+            FIM SE
+        SENÃO SE tt = tok_mod.COMMENT ENTÃO
+            EXECUTAR partes.append(f'<span class="k-cm">{e}</span>')
+        SENÃO SE tt = tok_mod.STRING ENTÃO
+            EXECUTAR partes.append(f'<span class="k-st">{e}</span>')
+        SENÃO SE tt = tok_mod.NUMBER ENTÃO
+            EXECUTAR partes.append(f'<span class="k-nu">{e}</span>')
+        SENÃO
+            EXECUTAR partes.append(e)
+        FIM SE
+        pos ← b
+        SE tt NÃO EM (tok_mod.NL, tok_mod.NEWLINE, tok_mod.COMMENT) ENTÃO
+            (ant2, ant) ← (ant, ts)
+        FIM SE
+        SE tt EM (tok_mod.NEWLINE, tok_mod.NL) ENTÃO
+            (ant2, ant) ← ("", "")
+        FIM SE
+    FIM PARA
+    SE pos < len(src) ENTÃO
+        EXECUTAR partes.append(html.escape(src[pos:]))
+    FIM SE
+    RETORNAR ("".join(partes), len(achados), sorted(set(achados)), sorted(alterados))
+FIM FUNÇÃO
+// --------------------------------------------------------------------- 5. execução
+cels ← [(r, ocultar(s)) PARA CADA (r, s) EM celulas() SE NÃO r.lower().startswith(("célula extra 1", "celula extra 1"))]
+nomes_sessao ← {"gptcast"}
+PARA CADA (_, s) EM cels FAÇA
+    nomes_sessao ← nomes_sessao | importados_do_gptcast(s)
+FIM PARA
+(linhas_tab, blocos, total) ← ([], [], 0)
+PARA CADA (rot, src) EM cels FAÇA
+    (h, n, uniq, alt) ← destacar(src, nomes_sessao)
+    SE n = 0 ENTÃO
+        PASSAR À PRÓXIMA ITERAÇÃO
+    FIM SE
+    total ← total + n
+    EXECUTAR linhas_tab.append({"Célula": rot, "Ocorrências": n, "Nomes do GPTCast usados": ", ".join(uniq), "Reatribuídos no notebook": ", ".join(al…
+    SE MOSTRAR_CODIGO ENTÃO
+        badges ← " ".join([f'<span class="gc-badge">{html.escape(t)}</span>' PARA CADA t EM uniq])
+        aviso ← (f"""<div class="gc-bar">Reatribuídos aqui (o notebook altera o o… SE alt SENÃO "")
+        EXECUTAR blocos.append(f'<details class="gc-box"><summary class="gc-head"><span>📄 <b>{h…)
+    FIM SE
+FIM PARA
+df_rastro ← pd.DataFrame(linhas_tab)
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+csv ← os.path.join(RESULTS_ENV_DIR, f'rastreabilidade_gptcast_por_celula_{ENV_TAG}.csv')
+EXECUTAR df_rastro.to_csv(csv, index=FALSO)
+ms ← time.perf_counter() − t_ini × 1000
+CSS ← f"<style>\n.gc-wrap{{font-family:'JetBrains Mono','Fira Code',Co…
+fonte ← ("arquivo " + os.path.basename(NOTEBOOK_PATH) SE NOTEBOOK_PATH SENÃO "células executadas nesta sessão")
+corpo ← ("".join(blocos) SE blocos SENÃO ("<p>Nenhuma célula com nomes do GPTCast. Execute as células d…" SE NÃO linhas_tab SENÃO ""))
+EXIBIR HTML(f'{CSS}<div class="gc-wrap"><div class="gc-title"><span>🔍 Código…)
+EXIBIR f"[Célula Extra 1] Nomes lidos do pacote em {GPTCAST['raiz']}: {…
+EXIBIR "[Célula Extra 1] E-mails e valores atribuídos a senha/token/…"
+EXIBIR (df_rastro.set_index("Célula") SE len(df_rastro) SENÃO df_rastro)
+EXIBIR f'[Célula Extra 1] Tabela -> {csv}'

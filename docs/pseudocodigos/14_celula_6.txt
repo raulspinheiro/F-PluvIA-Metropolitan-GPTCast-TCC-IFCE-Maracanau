@@ -1,0 +1,116 @@
+// ===== Célula 6 — pseudo-código =====
+// Célula 6: Estágio 1 — Fidelidade de Reconstrução do VQGAN Congelado a 2 km (Tabela 3):
+// estudo de caso + TODOS os quadros distintos da partição de teste de 2025.
+IMPORTAR datetime
+IMPORTAR os
+IMPORTAR time
+IMPORTAR Dict, Tuple DE typing
+IMPORTAR numpy (como np)
+IMPORTAR pandas (como pd)
+IMPORTAR torch
+IMPORTAR dbz_to_rainfall DE gptcast.utils.converters
+IMPORTAR structural_similarity (como ssim) DE skimage.metrics
+ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
+ENV_LABEL ← globals().get("ENV_LABEL", "Hardware Ativo")
+RESULTS_ENV_DIR ← globals().get("RESULTS_ENV_DIR", os.path.join(SERIES_CACHE_DIR, f'resultados_{ENV_TAG}'))
+EXECUTAR os.makedirs(RESULTS_ENV_DIR, exist_ok=VERDADEIRO)
+device ← ("cuda" SE torch.cuda.is_available() SENÃO "cpu")
+STEP_MIN ← 30
+TOKEN_KM ← GRID_SIZE DIV 8 × RES_KM   // 128 px / 8 tokens = 16 px por token = 32 km
+THRESHOLDS ← (0.5, 1.0, 5.0, 10.0)
+BATCH_FRAMES ← 128
+// Horário do estudo de caso (dt = último quadro da janela, +120 min)
+t0_history_end ← dt − datetime.timedelta(minutes=STEP_MIN × FORECAST_STEPS)
+t0_brt ← t0_history_end − datetime.timedelta(hours=3)
+data_str ← t0_brt.strftime("%d/%m/%Y")
+FUNÇÃO _sync()
+    SE torch.cuda.is_available() ENTÃO
+        EXECUTAR torch.cuda.synchronize()
+    FIM SE
+    RETORNAR time.perf_counter()
+FIM FUNÇÃO
+FUNÇÃO _to_rain(dbz)
+    RETORNAR np.clip(dbz_to_rainfall(np.clip(dbz, 0.0, 60.0).astype(np.float64)), 0.0, 205.0).astype(np.float32)
+FIM FUNÇÃO
+// --------------------------------------------------------------- 1. reconstrução
+// decorador: torch.no_grad()
+FUNÇÃO reconstruct_sequence_vqgan(model_gptcast, seq_dbz, device, batch_frames)
+    // (S, H, W) em dBZ [0, 60] -> codificador -> codebook (1.024 códigos, 8 x 8 tokens) -> decodificador.
+    // 
+    // Devolve (reconstrução em dBZ, em mm/h, tempo de GPU em s), processando em lotes.
+    vae ← model_gptcast.first_stage_model.to(device)
+    EXECUTAR vae.eval()
+    vdtype ← next(vae.parameters()).dtype
+    raw ← (seq_dbz.filled(0.0) SE isinstance(seq_dbz, np.ma.MaskedArray) SENÃO np.nan_to_num(seq_dbz, nan=0.0))
+    raw ← np.clip(raw, 0.0, 60.0).astype(np.float32)
+    out ← np.empty_like(raw)
+    t0 ← _sync()
+    PARA CADA i EM range(0, raw.shape[0], batch_frames) FAÇA
+        x ← torch.from_numpy(raw[(i:i + batch_frames, NULO)] / 30.0 − 1.0).to(device=device, dtype=vdtype)
+        (quant, _, _) ← vae.encode(x)
+        out[i:i + batch_frames] ← vae.decode(quant).squeeze(1).float().cpu().numpy()
+    FIM PARA
+    t_gpu ← _sync() − t0
+    rec_dbz ← np.clip(out + 1.0 × 30.0, 0.0, 60.0).astype(np.float32)
+    RETORNAR (rec_dbz, _to_rain(rec_dbz), float(t_gpu))
+FIM FUNÇÃO
+// ------------------------------------------------------------------- 2. métricas
+FUNÇÃO compute_stage1_metrics(obs_rain, rec_rain, obs_dbz, rec_dbz, gpu_time_s, label)
+    // MAE/RMSE (mm/h e dBZ), SSIM em dBZ (faixa fixa de 60 dBZ), PCC, volume, picos, CSI/BIAS.
+    (o_r, p_r) ← (obs_rain.astype(np.float64), rec_rain.astype(np.float64))
+    (o_d, p_d) ← (obs_dbz.astype(np.float64), rec_dbz.astype(np.float64))
+    ssim_d ← float(np.mean([ssim(o_d[i], p_d[i], data_range=60.0) PARA CADA i EM range(o_d.shape[0])]))
+    pcc ← (float(np.corrcoef(o_r.ravel(), p_r.ravel())[(0, 1)]) SE o_r.std() > 1e-06 E p_r.std() > 1e-06 SENÃO np.nan)
+    row ← {"Ambiente_Execucao": ENV_LABEL, "Hardware_Tag": ENV_TAG, "Conjunto Avaliado": label, "Quadros Avaliados": int(o_r.shape[0]), "MAE [mm/h] (…
+    PARA CADA thr EM THRESHOLDS FAÇA
+        (ob, rb) ← (o_r ≥ thr, p_r ≥ thr)
+        (tp, fp, fn) ← (int(np.sum(ob & rb)), int(np.sum(~ob & rb)), int(np.sum(ob & ~rb)))
+        csi ← (tp / tp + fp + fn SE tp + fp + fn SENÃO np.nan)
+        bias ← (tp + fp / tp + fn SE tp + fn SENÃO np.nan)
+        row[f'CSI/BIAS @ {thr} mm/h'] ← (f'{csi:.3f} / {bias:.2f}' SE np.isfinite(csi) SENÃO "sem eventos")
+    FIM PARA
+    row["Tempo Reconstrução GPU [s] (↓)"] ← round(float(gpu_time_s), 4)
+    row["ms por Quadro (↓)"] ← round(1000 × gpu_time_s / max(o_r.shape[0], 1), 3)
+    RETORNAR row
+FIM FUNÇÃO
+// ------------------------------------------------- 3. quadros distintos do teste de 2025
+FUNÇÃO unique_test_frames(dataset)
+    // As janelas de teste se sobrepõem (passo de 60 min, 11 quadros de 30 min): cada horário aparece
+    // em várias janelas. Devolve cada quadro de 30 min uma única vez, com o seu horário.
+    (S, T) ← (dataset.sequences_dbz, dataset.timestamps)
+    n_f ← S.shape[1]
+    offsets ← np.array([k − n_f − 1 × STEP_MIN PARA CADA k EM range(n_f)], dtype="timedelta64[m]")
+    times ← T[(:, NULO)] + offsets[(NULO, :)].ravel()
+    (_, first) ← np.unique(times, return_index=VERDADEIRO)
+    (seq_idx, frame_idx) ← np.divmod(first, n_f)
+    RETORNAR (np.clip(S[(seq_idx, frame_idx)], 0.0, 60.0).astype(np.float32), times[first])
+FIM FUNÇÃO
+// ------------------------------------------------------------------ 4. avaliação
+_ ← reconstruct_sequence_vqgan(gpt8, np.zeros((2, GRID_SIZE, GRID_SIZE), np.float32))   // aquecimento
+obs_4_dbz ← np.clip(np.asarray((ground_truth_dbz.data SE hasattr(ground_truth_dbz, "data") SENÃO ground_truth_dbz)), 0.0, 60.0)
+obs_4_rain ← _to_rain(obs_4_dbz)
+(rec_4_dbz, rec_4_rain, t_vq_case) ← reconstruct_sequence_vqgan(gpt8, obs_4_dbz)
+rows_stage1 ← [compute_stage1_metrics(obs_4_rain, rec_4_rain, obs_4_dbz, rec_4_dbz, t_vq_case, label=f'Estudo de caso {data_str} (validação, 4 quadro…
+(test_dbz, test_times) ← unique_test_frames(md_rmf.splits["test"])
+(rec_t_dbz, rec_t_rain, t_vq_test) ← reconstruct_sequence_vqgan(gpt8, test_dbz)
+obs_t_rain ← _to_rain(test_dbz)
+periodo ← f'{str(test_times[0])[:10]} a {str(test_times[-1])[:10]}'
+EXECUTAR rows_stage1.append(compute_stage1_metrics(obs_t_rain, rec_t_rain, test_dbz, rec_t_dbz, t_vq_test, label=f'Teste 2025 — todos os quadros dist…
+wet ← obs_t_rain.max(axis=(1, 2)) ≥ 1.0   // quadros com pico observado >= 1 mm/h
+SE wet.any() ENTÃO
+    EXECUTAR rows_stage1.append(compute_stage1_metrics(obs_t_rain[wet], rec_t_rain[wet], test_dbz[wet], rec_t_dbz[wet], t_vq_test × wet.mean(), label…
+FIM SE
+df_stage1_raw ← pd.DataFrame(rows_stage1)
+stage1_csv_path ← os.path.join(RESULTS_ENV_DIR, f'tabela3_estagio1_vqgan_2km_{ENV_TAG}_2019_2025.csv')
+EXECUTAR df_stage1_raw.to_csv(stage1_csv_path, index=FALSO)
+EXIBIR f'=== Tabela 3 — Reconstrução do VQGAN-8x8 congelado ({ENV_LABEL…
+EXIBIR f"Cada token cobre {GRID_SIZE // 8} x {GRID_SIZE // 8} pixels = …
+EXIBIR df_stage1_raw.drop(columns=["Hardware_Tag"]).set_index(["Ambiente_Execucao", "Conjunto Avaliado"])
+EXIBIR f'[Célula 6] Tabela 3 salva -> {stage1_csv_path}'
+// ------------------------------------------------------------------- 5. mapas
+res_abs_rain ← np.abs(rec_4_rain − obs_4_rain)
+SE "plot_rmf_spatial" EM globals() ENTÃO
+    EXECUTAR plot_rmf_spatial(obs_4_rain, dt, f'Estágio 1: observado IMERG-FR a {RES_KM} km ({data_str}) — ref…, save_filename=f'estagio1_01_observad…
+    EXECUTAR plot_rmf_spatial(rec_4_rain, dt, f'Estágio 1: reconstruído pelo VQGAN-8x8 (tokens de {TOKEN_KM:.0…, save_filename=f'estagio1_02_reconstr…
+    EXECUTAR plot_rmf_spatial(res_abs_rain, dt, f'Estágio 1: resíduo absoluto |reconstruído − observado| em mm/h…, save_filename=f'estagio1_03_residu…
+FIM SE

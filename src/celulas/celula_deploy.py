@@ -1,6 +1,7 @@
 # @title
 # Célula Deploy: Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
-# SHA-256 (Célula Extra 2), código das células e o notebook, com verificação de dados sensíveis antes do push.
+# SHA-256 (Célula Extra 2), código das células e o notebook.
+#
 import base64
 import datetime
 import fnmatch
@@ -28,7 +29,9 @@ NOTEBOOK_PATH = globals().get('DETECTED_NB_PATH')        # se None, procura NOTE
 CLONE_DIR = Path('/content/github_repo_sync') if os.path.isdir('/content') else BASE_DIR / 'github_repo_sync'
 MAX_MB = 95.0                                            # o GitHub recusa arquivos acima de 100 MB
 EXT_RESULTADOS = {'.csv', '.png', '.pdf', '.json', '.md', '.txt'}
-IGNORAR_RESULTADOS = ['cell12_previsoes_*', 'previsoes', 'provenance', 'cache_*', '*.tmp*', '.ipynb_checkpoints']
+IGNORAR_RESULTADOS = ['cell12_previsoes_*', 'previsoes', 'provenance', 'cache_*', '*.tmp*', '.ipynb_checkpoints',
+                      # saídas da antiga Célula 13.1 (benchmark dos 6 órgãos e validação INMET), removida do projeto
+                      '*6_orgaos*', 'inmet_*', '*pluviometros_inmet*']
 EXPORTAR_CELULAS = True                                  # grava o código de cada célula em src/celulas/*.py
 REMOVER_CERTIFICADOS_COM_CAMINHOS = True                 # git rm dos certificados antigos que listam o Drive
 CRIAR_README_SE_FALTAR = True                            # cria um README.md só se o repositório não tiver
@@ -110,6 +113,15 @@ for var in ('LAST_JSON_CERT', 'LAST_MD_CERT', 'LAST_SHA256SUMS'):
     copiar(Path(v), f'docs/provenance/{Path(v).name}')
 if not any(c.startswith('docs/provenance/') for c in copiados):
   print('  [aviso] Manifesto da Célula Extra 2 não encontrado nesta sessão: rode a Célula Extra 2 antes.')
+
+# 4b'. Pseudo-códigos da Célula Base (Pseudo-vista), se ela rodou nesta sessão
+_pv = globals().get('PSEUDO_DIR')
+if _pv and os.path.isdir(_pv):
+  for p in sorted(Path(_pv).glob('*')):
+    if p.is_file() and p.suffix.lower() in {'.txt', '.html'}:
+      copiar(p, f'docs/pseudocodigos/{p.name}')
+else:
+  print('  [aviso] Pseudo-códigos não encontrados nesta sessão: rode a Célula Base (Pseudo-vista) antes, se quiser enviá-los.')
 
 # 4c. Código de cada célula executada (e-mails e senhas ocultados)
 _EMAIL = re.compile(r'[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+')
