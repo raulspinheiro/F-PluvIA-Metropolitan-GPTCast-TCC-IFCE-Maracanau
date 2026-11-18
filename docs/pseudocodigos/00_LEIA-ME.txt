@@ -1,13 +1,13 @@
 Pseudo-códigos do notebook F-PluvIA Metropolitan
-Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 22:42)
-Gerado em: 18/11/2026 22:43 | Ambiente: G4_RTX6000_Blackwell_95GB
+Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 22:58)
+Gerado em: 18/11/2026 22:58 | Ambiente: G4_RTX6000_Blackwell_95GB
 Tradução automática por regras (árvore sintática do Python): é fiel à estrutura do código, não um resumo.
 
 // Convenções: ← atribuição | FUNÇÃO/CLASSE/SE/PARA CADA/ENQUANTO/TENTAR … FIM | EXIBIR = mostra na saída
 // EXECUTAR = chama uma função | // = comentário do código original | e-mails e senhas ocultados.
 
-01. Célula de código nº 1 -> 01_celula_de_codigo_no_1.txt
-02. Célula de código nº 2 -> 02_celula_de_codigo_no_2.txt
+01. Célula (Machine id) -> 01_celula_machine_id.txt
+02. Célula (Security info) -> 02_celula_security_info.txt
 03. Célula 1 -> 03_celula_1.txt
 04. Célula (Limpeza de Saídas Obsoletas) -> 04_celula_limpeza_de_saidas_obsoletas.txt
 05. Célula 2 -> 05_celula_2.txt

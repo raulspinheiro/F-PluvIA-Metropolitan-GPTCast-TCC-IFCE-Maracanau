@@ -1,4 +1,5 @@
-// ===== Célula de código nº 2 — pseudo-código =====
+// ===== Célula (Security info) — pseudo-código =====
+// Célula (Security info) : Verificação de Hardware e Unidade de Processamento Ativa (`nvidia-smi`)
 // ==============================================================================
 // AUDITORIA DE HARDWARE: Verificação de Unidade de Processamento (GPU / CUDA)
 // ==============================================================================

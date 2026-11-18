@@ -1,4 +1,5 @@
-// ===== Célula de código nº 1 — pseudo-código =====
+// ===== Célula (Machine id) — pseudo-código =====
+// Célula (Machine id): Detecção Automática do Ambiente de Execução - Identidade de Hardware e Isolamento de Artefatos na Memória (`ENV_TAG`)
 IMPORTAR torch
 SE torch.cuda.is_available() ENTÃO
     dev_name ← torch.cuda.get_device_name(0)
