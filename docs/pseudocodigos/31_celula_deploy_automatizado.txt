@@ -1,6 +1,6 @@
-// ===== Célula Deploy — pseudo-código =====
-// Célula Deploy: Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
-// SHA-256 (Célula Extra 2), código das células e o notebook.
+// ===== Célula (Deploy Automatizado) — pseudo-código =====
+// Célula (Deploy Automatizado): Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
+// SHA-256 (Célula Extra 2), código das células e o notebook, com verificação de dados sensíveis antes do push.
 IMPORTAR base64
 IMPORTAR datetime
 IMPORTAR fnmatch
@@ -10,6 +10,7 @@ IMPORTAR os
 IMPORTAR re
 IMPORTAR shutil
 IMPORTAR subprocess
+IMPORTAR unicodedata
 IMPORTAR Path DE pathlib
 ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
 RESULTS_ENV_DIR ← Path(globals().get("RESULTS_ENV_DIR", os.path.join(globals().get("SERIES_CACHE_DIR", "/content"), f'resultados_{ENV_TAG}')))
@@ -86,6 +87,23 @@ FUNÇÃO copiar(src, dst_rel)
     EXECUTAR shutil.copy2(src, dst)
     EXECUTAR copiados.append(dst_rel)
 FIM FUNÇÃO
+removidos ← []
+FUNÇÃO espelhar(pasta_rel, manter, padroes)
+    // Tira do repositório os arquivos de pasta_rel que não foram gerados nesta execução (versões antigas).
+    PARA CADA pad EM padroes FAÇA
+        PARA CADA p EM sorted(CLONE_DIR / pasta_rel.glob(pad)) FAÇA
+            SE p.is_file() E p.name NÃO EM manter ENTÃO
+                rel ← p.relative_to(CLONE_DIR).as_posix()
+                SE git("ls-files", rel) ENTÃO
+                    EXECUTAR git("rm", "-q", rel)
+                SENÃO
+                    EXECUTAR p.unlink()
+                FIM SE
+                EXECUTAR removidos.append(rel)
+            FIM SE
+        FIM PARA
+    FIM PARA
+FIM FUNÇÃO
 // ------------------------------------------------------------ 4. o que vai para o repositório
 EXIBIR "[2/5] Copiando artefatos ..."
 // 4a. Tabelas e figuras geradas pelas células (ficam no Drive, em RESULTS_ENV_DIR)
@@ -104,22 +122,22 @@ SENÃO
     EXIBIR f'  [aviso] {RESULTS_ENV_DIR} não existe: nenhuma tabela ou figu…
 FIM SE
 // 4b. Manifesto SHA-256 da Célula Extra 2
-PARA CADA var EM ("LAST_JSON_CERT", "LAST_MD_CERT", "LAST_SHA256SUMS") FAÇA
-    v ← globals().get(var)
-    SE v E os.path.isfile(v) ENTÃO
-        EXECUTAR copiar(Path(v), f'docs/provenance/{Path(v).name}')
-    FIM SE
-FIM PARA
-SE NÃO any([c.startswith("docs/provenance/") PARA CADA c EM copiados]) ENTÃO
+_manifesto ← [Path(v) PARA CADA v EM [globals().get(k) PARA CADA k EM ("LAST_JSON_CERT", "LAST_MD_CERT", "LAST_SHA256SUMS")] SE v E os.path.isfile(v)]
+SE _manifesto ENTÃO   // só o manifesto desta execução fica no repositório (os anteriores continuam no histórico do Git)
+    EXECUTAR espelhar("docs/provenance", [p.name PARA CADA p EM _manifesto], ("manifesto_proveniencia_*", "SHA256SUMS_*"))
+    PARA CADA p EM _manifesto FAÇA
+        EXECUTAR copiar(p, f'docs/provenance/{p.name}')
+    FIM PARA
+SENÃO
     EXIBIR "  [aviso] Manifesto da Célula Extra 2 não encontrado nesta s…"
 FIM SE
 // 4b'. Pseudo-códigos da Célula Base (Pseudo-vista), se ela rodou nesta sessão
 _pv ← globals().get("PSEUDO_DIR")
 SE _pv E os.path.isdir(_pv) ENTÃO
-    PARA CADA p EM sorted(Path(_pv).glob("*")) FAÇA
-        SE p.is_file() E p.suffix.lower() EM {".txt", ".html"} ENTÃO
-            EXECUTAR copiar(p, f'docs/pseudocodigos/{p.name}')
-        FIM SE
+    _novos ← [p PARA CADA p EM sorted(Path(_pv).glob("*")) SE p.is_file() E p.suffix.lower() EM {".txt", ".html"}]
+    EXECUTAR espelhar("docs/pseudocodigos", [p.name PARA CADA p EM _novos])   // numeração antiga sai do repositório
+    PARA CADA p EM _novos FAÇA
+        EXECUTAR copiar(p, f'docs/pseudocodigos/{p.name}')
     FIM PARA
 SENÃO
     EXIBIR "  [aviso] Pseudo-códigos não encontrados nesta sessão: rode …"
@@ -130,24 +148,6 @@ _SEGREDO ← re.compile("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s
 FUNÇÃO ocultar(s)
     RETORNAR _EMAIL.sub("[e-mail oculto]", _SEGREDO.sub("\1\2[OCULTO]\2", s))
 FIM FUNÇÃO
-SE EXPORTAR_CELULAS ENTÃO
-    ip ← (get_ipython() SE "get_ipython" EM globals() SENÃO NULO)
-    ultima ← {}
-    PARA CADA src EM (ip.user_ns.get("_ih", []) SE ip NÃO É NULO SENÃO []) FAÇA
-        m ← re.search("^#\s*C[ée]lula\s+([^:\n]+)", src OU "", re.M)
-        SE m ENTÃO
-            ultima[m.group(1).strip()] ← src
-        FIM SE
-    FIM PARA
-    PARA CADA (rot, src) EM ultima.items() FAÇA
-        slug ← re.sub("[^0-9A-Za-z]+", "_", rot.lower().replace("é", "e")).strip("_")
-        dst ← CLONE_DIR / "src" / "celulas" / f'celula_{slug}.py'
-        EXECUTAR dst.parent.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
-        EXECUTAR dst.write_text(ocultar(src).rstrip() + " ", encoding="utf-8")
-        EXECUTAR copiados.append(dst.relative_to(CLONE_DIR).as_posix())
-    FIM PARA
-FIM SE
-// 4d. O notebook (a última versão SALVA no Drive: use Ctrl+S antes de rodar esta célula)
 SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
     PARA CADA cand EM (Path("/content/drive/MyDrive/Colab Notebooks") / NOTEBOOK_NAME, Path("/content/drive/MyDrive") / NOTEBOOK_NAME) FAÇA
         SE cand.is_file() ENTÃO
@@ -156,19 +156,56 @@ SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
         FIM SE
     FIM PARA
 FIM SE
+SE EXPORTAR_CELULAS ENTÃO
+    // Código de TODAS as células, lido do notebook salvo (e não só das executadas nesta sessão).
+    (fontes, do_notebook) ← ([], FALSO)
+    SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+        TENTAR
+            fontes ← ["".join(c.get("source", [])) PARA CADA c EM json.loads(Path(NOTEBOOK_PATH).read_text(encoding="utf-8"))["cells"] SE c.get("cell…
+            do_notebook ← VERDADEIRO
+        SE OCORRER ERRO Exception
+            fontes ← []
+        FIM TENTAR
+    FIM SE
+    SE NÃO fontes ENTÃO
+        ip ← (get_ipython() SE "get_ipython" EM globals() SENÃO NULO)
+        fontes ← (list(ip.user_ns.get("_ih", [])) SE ip NÃO É NULO SENÃO [])
+    FIM SE
+    ultima ← {}
+    PARA CADA src EM fontes FAÇA
+        m ← re.search("^#\s*(?:@title\s*#\s*)?C[ée]lula\s+([^:\n]+)", src OU "", re.M)
+        SE m ENTÃO
+            ultima[m.group(1).strip()] ← src
+        FIM SE
+    FIM PARA
+    nomes ← {}
+    PARA CADA (rot, src) EM ultima.items() FAÇA
+        slug ← re.sub("[^0-9A-Za-z]+", "_", unicodedata.normalize("NFKD", rot.lower()).encode("ascii", "ignore").decode()).strip("_")
+        nomes[f'celula_{slug}.py'] ← src
+    FIM PARA
+    SE do_notebook E nomes ENTÃO   // com o notebook inteiro em mãos, versões antigas de células saem do repositório
+        EXECUTAR espelhar("src/celulas", set(nomes), ("*.py"))
+    FIM SE
+    PARA CADA (nome, src) EM nomes.items() FAÇA
+        dst ← CLONE_DIR / "src" / "celulas" / nome
+        EXECUTAR dst.parent.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+        EXECUTAR dst.write_text(ocultar(src).rstrip() + " ", encoding="utf-8")
+        EXECUTAR copiados.append(dst.relative_to(CLONE_DIR).as_posix())
+    FIM PARA
+FIM SE
+// 4d. O notebook (a última versão SALVA no Drive: use Ctrl+S antes de rodar esta célula)
 SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
     EXECUTAR copiar(Path(NOTEBOOK_PATH), f'notebooks/{Path(NOTEBOOK_PATH).name}')
 SENÃO
     EXIBIR "  [aviso] Notebook não encontrado no Drive (defina DETECTED_…"
 FIM SE
 // 4e. Certificados antigos que listam caminhos pessoais do Drive (versão anterior da Célula Extra 2)
-removidos ← []
 SE REMOVER_CERTIFICADOS_COM_CAMINHOS ENTÃO
     PARA CADA p EM sorted(CLONE_DIR / "docs" / "provenance".glob("certificado_autoria_*")) FAÇA
         TENTAR
             SE "/content/drive/" EM p.read_text(encoding="utf-8", errors="ignore") OU ""relative_path": "drive/" EM p.read_text(encoding="utf-8", err…
                 EXECUTAR git("rm", "-q", str(p.relative_to(CLONE_DIR)))
-                EXECUTAR removidos.append(p.name)
+                EXECUTAR removidos.append(p.relative_to(CLONE_DIR).as_posix())
             FIM SE
         SE OCORRER ERRO OSError
             (nada a fazer)
@@ -231,8 +268,7 @@ SE grandes ENTÃO
     EXIBIR "  Acima de 95 MB (ficam só no Drive): " + ", ".join([f'{n} ({mb} MB)' PARA CADA (n, mb) EM grandes])
 FIM SE
 SE removidos ENTÃO
-    EXIBIR "  Certificados antigos com caminhos do Drive retirados do re…" + ", ".join(removidos)
-    EXIBIR "  (continuam no histórico do git; para apagá-los de vez é pr…"
+    EXIBIR f"  Retirados do repositório (versões antigas; continuam no hist… + (" …" SE len(removidos) > 4 SENÃO "")
 FIM SE
 SE NÃO git("status", "--porcelain") ENTÃO
     EXIBIR "[5/5] Nada mudou: o repositório já está sincronizado."

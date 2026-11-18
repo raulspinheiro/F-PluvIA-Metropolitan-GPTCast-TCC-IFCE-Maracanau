@@ -1,7 +1,6 @@
 # @title
-# Célula Deploy: Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
-# SHA-256 (Célula Extra 2), código das células e o notebook.
-#
+# Célula (Deploy Automatizado): Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
+# SHA-256 (Célula Extra 2), código das células e o notebook, com verificação de dados sensíveis antes do push.
 import base64
 import datetime
 import fnmatch
@@ -11,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import unicodedata
 from pathlib import Path
 
 ENV_TAG = globals().get('ENV_TAG', 'Ambiente_Ativo')
@@ -92,6 +92,22 @@ def copiar(src: Path, dst_rel: str):
   copiados.append(dst_rel)
 
 
+removidos = []
+
+
+def espelhar(pasta_rel: str, manter: set, padroes=('*',)):
+  """Tira do repositório os arquivos de pasta_rel que não foram gerados nesta execução (versões antigas)."""
+  for pad in padroes:
+    for p in sorted((CLONE_DIR / pasta_rel).glob(pad)):
+      if p.is_file() and p.name not in manter:
+        rel = p.relative_to(CLONE_DIR).as_posix()
+        if git('ls-files', rel):
+          git('rm', '-q', rel)
+        else:
+          p.unlink()
+        removidos.append(rel)
+
+
 # ------------------------------------------------------------ 4. o que vai para o repositório
 print('[2/5] Copiando artefatos ...')
 # 4a. Tabelas e figuras geradas pelas células (ficam no Drive, em RESULTS_ENV_DIR)
@@ -107,19 +123,22 @@ else:
   print(f'  [aviso] {RESULTS_ENV_DIR} não existe: nenhuma tabela ou figura copiada.')
 
 # 4b. Manifesto SHA-256 da Célula Extra 2
-for var in ('LAST_JSON_CERT', 'LAST_MD_CERT', 'LAST_SHA256SUMS'):
-  v = globals().get(var)
-  if v and os.path.isfile(v):
-    copiar(Path(v), f'docs/provenance/{Path(v).name}')
-if not any(c.startswith('docs/provenance/') for c in copiados):
+_manifesto = [Path(v) for v in (globals().get(k) for k in ('LAST_JSON_CERT', 'LAST_MD_CERT', 'LAST_SHA256SUMS'))
+              if v and os.path.isfile(v)]
+if _manifesto:   # só o manifesto desta execução fica no repositório (os anteriores continuam no histórico do Git)
+  espelhar('docs/provenance', {p.name for p in _manifesto}, ('manifesto_proveniencia_*', 'SHA256SUMS_*'))
+  for p in _manifesto:
+    copiar(p, f'docs/provenance/{p.name}')
+else:
   print('  [aviso] Manifesto da Célula Extra 2 não encontrado nesta sessão: rode a Célula Extra 2 antes.')
 
 # 4b'. Pseudo-códigos da Célula Base (Pseudo-vista), se ela rodou nesta sessão
 _pv = globals().get('PSEUDO_DIR')
 if _pv and os.path.isdir(_pv):
-  for p in sorted(Path(_pv).glob('*')):
-    if p.is_file() and p.suffix.lower() in {'.txt', '.html'}:
-      copiar(p, f'docs/pseudocodigos/{p.name}')
+  _novos = [p for p in sorted(Path(_pv).glob('*')) if p.is_file() and p.suffix.lower() in {'.txt', '.html'}]
+  espelhar('docs/pseudocodigos', {p.name for p in _novos})   # numeração antiga sai do repositório
+  for p in _novos:
+    copiar(p, f'docs/pseudocodigos/{p.name}')
 else:
   print('  [aviso] Pseudo-códigos não encontrados nesta sessão: rode a Célula Base (Pseudo-vista) antes, se quiser enviá-los.')
 
@@ -132,39 +151,55 @@ def ocultar(s: str) -> str:
   return _EMAIL.sub('[e-mail oculto]', _SEGREDO.sub(r'\1\2[OCULTO]\2', s))
 
 
-if EXPORTAR_CELULAS:
-  ip = get_ipython() if 'get_ipython' in globals() else None
-  ultima = {}
-  for src in (ip.user_ns.get('_ih', []) if ip is not None else []):
-    m = re.search(r'^#\s*C[ée]lula\s+([^:\n]+)', src or '', re.M)
-    if m:
-      ultima[m.group(1).strip()] = src
-  for rot, src in ultima.items():
-    slug = re.sub(r'[^0-9A-Za-z]+', '_', rot.lower().replace('é', 'e')).strip('_')
-    dst = CLONE_DIR / 'src' / 'celulas' / f'celula_{slug}.py'
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(ocultar(src).rstrip() + '\n', encoding='utf-8')
-    copiados.append(dst.relative_to(CLONE_DIR).as_posix())
-
-# 4d. O notebook (a última versão SALVA no Drive: use Ctrl+S antes de rodar esta célula)
 if not (NOTEBOOK_PATH and os.path.isfile(NOTEBOOK_PATH)):
   for cand in (Path('/content/drive/MyDrive/Colab Notebooks') / NOTEBOOK_NAME, Path('/content/drive/MyDrive') / NOTEBOOK_NAME):
     if cand.is_file():
       NOTEBOOK_PATH = str(cand)
       break
+
+if EXPORTAR_CELULAS:
+  # Código de TODAS as células, lido do notebook salvo (e não só das executadas nesta sessão).
+  fontes, do_notebook = [], False
+  if NOTEBOOK_PATH and os.path.isfile(NOTEBOOK_PATH):
+    try:
+      fontes = [''.join(c.get('source', [])) for c in json.loads(Path(NOTEBOOK_PATH).read_text(encoding='utf-8'))['cells']
+                if c.get('cell_type') == 'code']
+      do_notebook = True
+    except Exception:
+      fontes = []
+  if not fontes:
+    ip = get_ipython() if 'get_ipython' in globals() else None
+    fontes = list(ip.user_ns.get('_ih', [])) if ip is not None else []
+  ultima = {}
+  for src in fontes:
+    m = re.search(r'^#\s*(?:@title\s*#\s*)?C[ée]lula\s+([^:\n]+)', src or '', re.M)
+    if m:
+      ultima[m.group(1).strip()] = src
+  nomes = {}
+  for rot, src in ultima.items():
+    slug = re.sub(r'[^0-9A-Za-z]+', '_', unicodedata.normalize('NFKD', rot.lower()).encode('ascii', 'ignore').decode()).strip('_')
+    nomes[f'celula_{slug}.py'] = src
+  if do_notebook and nomes:   # com o notebook inteiro em mãos, versões antigas de células saem do repositório
+    espelhar('src/celulas', set(nomes), ('*.py',))
+  for nome, src in nomes.items():
+    dst = CLONE_DIR / 'src' / 'celulas' / nome
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(ocultar(src).rstrip() + '\n', encoding='utf-8')
+    copiados.append(dst.relative_to(CLONE_DIR).as_posix())
+
+# 4d. O notebook (a última versão SALVA no Drive: use Ctrl+S antes de rodar esta célula)
 if NOTEBOOK_PATH and os.path.isfile(NOTEBOOK_PATH):
   copiar(Path(NOTEBOOK_PATH), f'notebooks/{Path(NOTEBOOK_PATH).name}')
 else:
   print('  [aviso] Notebook não encontrado no Drive (defina DETECTED_NB_PATH).')
 
 # 4e. Certificados antigos que listam caminhos pessoais do Drive (versão anterior da Célula Extra 2)
-removidos = []
 if REMOVER_CERTIFICADOS_COM_CAMINHOS:
   for p in sorted((CLONE_DIR / 'docs' / 'provenance').glob('certificado_autoria_*')):
     try:
       if '/content/drive/' in p.read_text(encoding='utf-8', errors='ignore') or '"relative_path": "drive/' in p.read_text(encoding='utf-8', errors='ignore'):
         git('rm', '-q', str(p.relative_to(CLONE_DIR)))
-        removidos.append(p.name)
+        removidos.append(p.relative_to(CLONE_DIR).as_posix())
     except OSError:
       pass
 
@@ -228,8 +263,8 @@ print(f'[4/5] {len(copiados)} arquivos copiados, {len(alterados)} novos ou alter
 if grandes:
   print('  Acima de 95 MB (ficam só no Drive): ' + ', '.join(f'{n} ({mb} MB)' for n, mb in grandes))
 if removidos:
-  print('  Certificados antigos com caminhos do Drive retirados do repositório: ' + ', '.join(removidos))
-  print('  (continuam no histórico do git; para apagá-los de vez é preciso reescrever o histórico.)')
+  print(f'  Retirados do repositório (versões antigas; continuam no histórico do Git): {len(removidos)} arquivo(s), '
+        f'ex.: {", ".join(Path(r).name for r in removidos[:4])}' + (' …' if len(removidos) > 4 else ''))
 if not git('status', '--porcelain'):
   print('[5/5] Nada mudou: o repositório já está sincronizado.')
 elif SO_PREPARAR:
@@ -247,7 +282,7 @@ else:
   corpo = (f'Sincronização automática do Google Colab ({agora:%Y-%m-%d %H:%M} BRT).\n\n'
            f'- Ambiente: {ENV_TAG}\n- Arquivos novos ou alterados: {len(alterados)}\n'
            + (f'- Hash raiz do manifesto (início): {raiz}\n' if raiz else '')
-           + (f'- Certificados antigos removidos: {len(removidos)}\n' if removidos else ''))
+           + (f'- Versões antigas retiradas: {len(removidos)}\n' if removidos else ''))
   git('commit', '-q', '-m', f'chore(results): sincroniza artefatos de {ENV_TAG}', '-m', corpo)
   print(f'[5/5] Enviando para o ramo {RAMO} ...')
   if not REPO_VAZIO:

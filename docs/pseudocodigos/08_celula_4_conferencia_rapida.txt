@@ -1,4 +1,5 @@
-// ===== Célula de código nº 8 — pseudo-código =====
+// ===== Célula 4 (conferência rápida) — pseudo-código =====
+// Célula 4 (conferência rápida): registro de treino e perda por época
 IMPORTAR json, pandas (como pd)
 rec ← json.load(open(training_record_json))
 EXIBIR [k: rec.get(k) PARA CADA k EM ("epocas_executadas", "melhor_epoca", "melhor_val_loss_2024", "tokenizacao_treino")]

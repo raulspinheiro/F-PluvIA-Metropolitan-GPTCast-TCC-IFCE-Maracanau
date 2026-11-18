@@ -3,7 +3,7 @@
 # anteriores do projeto (antes do checkpoint atual 20261116T2123Z): avaliação antiga de 30 janelas, comparação com
 # órgãos/instituições (célula removida), versões antigas do teste cego de 2026 e diagnósticos de 11/11/2026.
 # Nada é apagado do Drive: os arquivos vão para arquivo_versoes_anteriores_<ENV_TAG>, fora da pasta de resultados,
-# e deixam de entrar no Deploy, no Backup e no manifesto SHA-256. 
+# e deixam de entrar no Deploy, no Backup e no manifesto SHA-256.
 import base64
 import datetime
 import os

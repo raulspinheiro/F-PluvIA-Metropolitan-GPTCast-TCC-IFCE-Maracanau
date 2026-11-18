@@ -1,6 +1,0 @@
-// ===== Célula de código nº 15 — pseudo-código =====
-IMPORTAR json, pandas (como pd)
-rec ← json.load(open(training_record_json))
-EXIBIR [k: rec.get(k) PARA CADA k EM ("epocas_executadas", "melhor_epoca", "melhor_val_loss_2024", "tokenizacao_treino")]
-m ← pd.read_csv(rec["curva_por_epoca_csv"])
-EXIBIR m.groupby("epoch")[["train/loss_epoch", "val/loss_epoch"]].mean().round(4)

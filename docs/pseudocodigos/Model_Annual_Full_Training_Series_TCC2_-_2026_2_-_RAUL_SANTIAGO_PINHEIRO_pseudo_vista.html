@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a716349b">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=dd68bcf6">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9847,7 +9847,8 @@ Relatório salvo em: /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/res
 <div class="jp-InputArea jp-Cell-inputArea">
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-text"><pre><span></span>// ===== Célula de código nº 8 — pseudo-código =====
+<div class="highlight hl-text"><pre><span></span>// ===== Célula 4 (conferência rápida) — pseudo-código =====
+// Célula 4 (conferência rápida): registro de treino e perda por época
 IMPORTAR json, pandas (como pd)
 rec ← json.load(open(training_record_json))
 EXIBIR [k: rec.get(k) PARA CADA k EM ("epocas_executadas", "melhor_epoca", "melhor_val_loss_2024", "tokenizacao_treino")]
@@ -28322,14 +28323,14 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>[Pseudo-vista] Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 21:51; use Ctrl+S antes, se tiver mudado algo).
+<pre>[Pseudo-vista] Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 22:31; use Ctrl+S antes, se tiver mudado algo).
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<div class="colab-df-container" id="df-ef16683b-2312-4c92-8322-c2711610748a">
+<div class="colab-df-container" id="df-f0aff99e-f5d3-421f-b3ae-2f14d9dec7fc">
 <div>
 <style scoped="">
     .dataframe tbody tr th:only-of-type {
@@ -28562,8 +28563,8 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 <th>29</th>
 <td>Célula Extra 2</td>
 <td>29_celula_extra_2.txt</td>
-<td>256</td>
-<td>214</td>
+<td>275</td>
+<td>235</td>
 </tr>
 <tr>
 <th>30</th>
@@ -28591,7 +28592,7 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 </div>
 <div class="colab-df-buttons">
 <div class="colab-df-container">
-<button class="colab-df-convert" onclick="convertToInteractive('df-ef16683b-2312-4c92-8322-c2711610748a')" style="display:none;" title="Convert this dataframe to an interactive table.">
+<button class="colab-df-convert" onclick="convertToInteractive('df-f0aff99e-f5d3-421f-b3ae-2f14d9dec7fc')" style="display:none;" title="Convert this dataframe to an interactive table.">
 <svg height="24px" viewbox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
 <path d="M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z"></path>
 </svg>
@@ -28638,12 +28639,12 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
   </style>
 <script>
       const buttonEl =
-        document.querySelector('#df-ef16683b-2312-4c92-8322-c2711610748a button.colab-df-convert');
+        document.querySelector('#df-f0aff99e-f5d3-421f-b3ae-2f14d9dec7fc button.colab-df-convert');
       buttonEl.style.display =
         google.colab.kernel.accessAllowed ? 'block' : 'none';
 
       async function convertToInteractive(key) {
-        const element = document.querySelector('#df-ef16683b-2312-4c92-8322-c2711610748a');
+        const element = document.querySelector('#df-f0aff99e-f5d3-421f-b3ae-2f14d9dec7fc');
         const dataTable =
           await google.colab.kernel.invokeFunction('convertToInteractive',
                                                     [key], {});
@@ -28684,52 +28685,36 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="%F0%9F%9A%A9-C%C3%A9lula-(Deploy-Automatizado):-Envio-dos-Artefatos-para-o-GitHub">🚩 Célula (Deploy Automatizado): Envio dos Artefatos para o GitHub<a class="anchor-link" href="#%F0%9F%9A%A9-C%C3%A9lula-(Deploy-Automatizado):-Envio-dos-Artefatos-para-o-GitHub">¶</a></h1><p>Esta célula envia para o repositório <a href="https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau"><code>F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau</code></a> os <strong>resultados reais do pipeline</strong>, o <strong>manifesto SHA-256</strong>, os <strong>pseudo-códigos</strong>, o <strong>código das células</strong> e o <strong>notebook</strong>. Antes do envio, ela faz uma <strong>verificação de dados sensíveis</strong>.</p>
 <h2 id="1.-Credencial">1. Credencial<a class="anchor-link" href="#1.-Credencial">¶</a></h2><ul>
-<li><p><strong>Token</strong>: <code>GITHUB_TOKEN</code> lido dos <strong>Segredos do Colab</strong> (ícone de chave, com <em>Notebook access</em> ativado).</p>
-</li>
-<li><p><strong>Sem persistência</strong>: o token vai <strong>só no cabeçalho HTTP</strong> de cada comando <code>git</code>. Ele <strong>não fica gravado</strong> na URL do repositório nem no <code>.git/config</code>, e qualquer mensagem de erro sai com o token trocado por <code>***</code>.</p>
-</li>
+<li><strong>Token</strong>: <code>GITHUB_TOKEN</code> lido dos <strong>Segredos do Colab</strong> (ícone de chave, com <em>Notebook access</em> ativado).</li>
+<li><strong>Sem persistência</strong>: o token vai <strong>só no cabeçalho HTTP</strong> de cada comando <code>git</code>. Ele <strong>não fica gravado</strong> na URL do repositório nem no <code>.git/config</code>, e qualquer mensagem de erro sai com o token trocado por <code>***</code>.</li>
 </ul>
 <h2 id="2.-O-que-%C3%A9-Enviado">2. O que é Enviado<a class="anchor-link" href="#2.-O-que-%C3%A9-Enviado">¶</a></h2><ul>
-<li><p><strong><code>results/&lt;ENV_TAG&gt;/tables/</code> e <code>results/&lt;ENV_TAG&gt;/figures/</code></strong>: as tabelas (<code>.csv</code>, <code>.json</code>, <code>.md</code>, <code>.txt</code>) e as figuras (<code>.png</code>, <code>.pdf</code>) que as células gravam em <code>RESULTS_ENV_DIR</code> no Drive, mantendo as subpastas (por exemplo <code>teste_cego_2026/</code>).</p>
-</li>
-<li><p><strong>Ficam de fora</strong>:</p>
-<ul>
+<li><strong><code>results/&lt;ENV_TAG&gt;/tables/</code> e <code>results/&lt;ENV_TAG&gt;/figures/</code></strong>: as tabelas (<code>.csv</code>, <code>.json</code>, <code>.md</code>, <code>.txt</code>) e as figuras (<code>.png</code>, <code>.pdf</code>) que as células gravam em <code>RESULTS_ENV_DIR</code> no Drive, mantendo as subpastas (por exemplo <code>teste_cego_2026/</code>).</li>
+<li><strong>Ficam de fora</strong>:<ul>
 <li>os blocos de previsões da Célula 12;</li>
 <li>os caches;</li>
 <li>arquivos acima de <strong>95 MB</strong> (o GitHub recusa acima de 100 MB). Os checkpoints <code>.ckpt</code> ficam só no Drive.</li>
 </ul>
 </li>
-<li><p><strong><code>docs/provenance/</code></strong>: o manifesto JSON, o resumo Markdown e o <code>SHA256SUMS</code> emitidos pela <strong>Célula Extra 2</strong> na mesma sessão.</p>
-</li>
-<li><p><strong><code>docs/pseudocodigos/</code></strong>: os pseudo-códigos (um <code>.txt</code> por célula, o <code>00_LEIA-ME.txt</code> e o HTML da pseudo-vista) gerados pela <strong>Célula Base (Pseudo-vista)</strong> na mesma sessão.</p>
-</li>
-<li><p><strong><code>src/celulas/</code></strong>: o código da última execução de cada célula (rótulo <code># Célula X:</code>), com <strong>e-mails e senhas ocultados</strong>.</p>
-</li>
-<li><p><strong><code>notebooks/</code></strong>: o <code>.ipynb</code> como está <strong>salvo no Drive</strong>. Salve com <strong>Ctrl+S</strong> antes de rodar esta célula.</p>
-</li>
+<li><strong><code>docs/provenance/</code></strong>: o manifesto JSON, o resumo Markdown e o <code>SHA256SUMS</code> emitidos pela <strong>Célula Extra 2</strong> na mesma sessão. Só o manifesto mais recente fica na pasta; os anteriores saem do repositório e continuam no histórico do Git.</li>
+<li><strong><code>docs/pseudocodigos/</code></strong>: os pseudo-códigos (um <code>.txt</code> por célula, o <code>00_LEIA-ME.txt</code> e o HTML da pseudo-vista) gerados pela <strong>Célula Base (Pseudo-vista)</strong> na mesma sessão. A pasta é espelhada: arquivos de uma numeração antiga das células saem do repositório.</li>
+<li><strong><code>src/celulas/</code></strong>: o código de <strong>todas as células</strong>, lido do notebook salvo (rótulo <code># Célula X:</code>), com <strong>e-mails e senhas ocultados</strong>. A pasta é espelhada: células que não existem mais no notebook saem do repositório.</li>
+<li><strong><code>notebooks/</code></strong>: o <code>.ipynb</code> como está <strong>salvo no Drive</strong>. Salve com <strong>Ctrl+S</strong> antes de rodar esta célula.</li>
 </ul>
 <h2 id="3.-Prote%C3%A7%C3%B5es-Antes-do-Push">3. Proteções Antes do Push<a class="anchor-link" href="#3.-Prote%C3%A7%C3%B5es-Antes-do-Push">¶</a></h2><ol>
-<li><p><strong>Bloqueio de credenciais</strong>: se algum arquivo novo contiver o <code>GITHUB_TOKEN</code>, o usuário ou a senha da <strong>NASA PPS</strong> (lidos dos Segredos) ou um token no formato do GitHub, o envio é <strong>cancelado</strong> e <strong>nada é enviado</strong>. A mensagem diz em qual arquivo está o problema.</p>
-</li>
-<li><p><strong>Bloqueio de caminhos do Drive</strong>: arquivos de proveniência que listem caminhos <code>/content/drive/</code> também cancelam o envio.</p>
-</li>
-<li><p><strong>Certificados antigos</strong>: os <code>certificado_autoria_*</code> da versão anterior que listam caminhos do Drive são <strong>retirados do repositório</strong> (<code>git rm</code>). No repositório recriado em 16/11/2026 eles não existem mais; a proteção fica para o caso de algum voltar.</p>
-</li>
-<li><p><strong>Aviso de e-mails</strong>: arquivos com endereços de e-mail são listados como aviso.</p>
-</li>
+<li><strong>Bloqueio de credenciais</strong>: se algum arquivo novo contiver o <code>GITHUB_TOKEN</code>, o usuário ou a senha da <strong>NASA PPS</strong> (lidos dos Segredos) ou um token no formato do GitHub, o envio é <strong>cancelado</strong> e <strong>nada é enviado</strong>. A mensagem diz em qual arquivo está o problema.</li>
+<li><strong>Bloqueio de caminhos do Drive</strong>: arquivos de proveniência que listem caminhos <code>/content/drive/</code> também cancelam o envio.</li>
+<li><strong>Versões antigas</strong>: manifestos anteriores, pseudo-códigos com numeração antiga, código de células que saíram do notebook e os <code>certificado_autoria_*</code> antigos que listam caminhos do Drive são <strong>retirados do repositório</strong> (<code>git rm</code>). Tudo continua no histórico do Git.</li>
+<li><strong>Aviso de e-mails</strong>: arquivos com endereços de e-mail são listados como aviso.</li>
 </ol>
 <h2 id="4.-Commit-e-Push">4. Commit e Push<a class="anchor-link" href="#4.-Commit-e-Push">¶</a></h2><ul>
-<li><p><strong>Mensagem do commit</strong>: informa o <code>ENV_TAG</code>, o número de arquivos e o início do hash raiz do manifesto.</p>
-</li>
-<li><p><strong>Envio</strong>: <code>git pull --rebase</code> e <code>git push</code> no <strong>ramo padrão</strong> do repositório.</p>
-</li>
-<li><p><strong>Repositório recém-criado</strong>: se o repositório estiver <strong>vazio</strong> (sem nenhum commit), o primeiro envio cria o ramo <code>main</code>.</p>
-</li>
-<li><p><strong>README</strong>: se o repositório <strong>não tiver</strong> um <code>README.md</code>, a célula cria um com o título, a autoria e a estrutura das pastas. Um README que já existe <strong>nunca é sobrescrito</strong> (<code>CRIAR_README_SE_FALTAR = False</code> desliga isso).</p>
-</li>
-<li><p><strong>Modo de conferência</strong>: <code>SO_PREPARAR = True</code> monta o commit e mostra a lista do que seria enviado, <strong>sem enviar</strong>.</p>
-</li>
+<li><strong>Mensagem do commit</strong>: informa o <code>ENV_TAG</code>, o número de arquivos e o início do hash raiz do manifesto.</li>
+<li><strong>Envio</strong>: <code>git pull --rebase</code> e <code>git push</code> no <strong>ramo padrão</strong> do repositório.</li>
+<li><strong>Repositório recém-criado</strong>: se o repositório estiver <strong>vazio</strong> (sem nenhum commit), o primeiro envio cria o ramo <code>main</code>.</li>
+<li><strong>README</strong>: se o repositório <strong>não tiver</strong> um <code>README.md</code>, a célula cria um com o título, a autoria e a estrutura das pastas. Um README que já existe <strong>nunca é sobrescrito</strong> (<code>CRIAR_README_SE_FALTAR = False</code> desliga isso).</li>
+<li><strong>Modo de conferência</strong>: <code>SO_PREPARAR = True</code> monta o commit e mostra a lista do que seria enviado, <strong>sem enviar</strong>.</li>
 </ul>
+<p><strong>Requisito</strong>: rodar antes a <strong>Célula Extra 2</strong> (manifesto) e a <strong>Célula Base (Pseudo-vista)</strong> na mesma sessão e salvar o notebook.</p>
 </div>
 </div>
 </div>
@@ -28740,9 +28725,9 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 <div class="jp-InputArea jp-Cell-inputArea">
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-text"><pre><span></span>// ===== Célula Deploy — pseudo-código =====
-// Célula Deploy: Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
-// SHA-256 (Célula Extra 2), código das células e o notebook.
+<div class="highlight hl-text"><pre><span></span>// ===== Célula (Deploy Automatizado) — pseudo-código =====
+// Célula (Deploy Automatizado): Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
+// SHA-256 (Célula Extra 2), código das células e o notebook, com verificação de dados sensíveis antes do push.
 IMPORTAR base64
 IMPORTAR datetime
 IMPORTAR fnmatch
@@ -28752,6 +28737,7 @@ IMPORTAR os
 IMPORTAR re
 IMPORTAR shutil
 IMPORTAR subprocess
+IMPORTAR unicodedata
 IMPORTAR Path DE pathlib
 ENV_TAG ← globals().get("ENV_TAG", "Ambiente_Ativo")
 RESULTS_ENV_DIR ← Path(globals().get("RESULTS_ENV_DIR", os.path.join(globals().get("SERIES_CACHE_DIR", "/content"), f'resultados_{ENV_TAG}')))
@@ -28828,6 +28814,23 @@ FUNÇÃO copiar(src, dst_rel)
     EXECUTAR shutil.copy2(src, dst)
     EXECUTAR copiados.append(dst_rel)
 FIM FUNÇÃO
+removidos ← []
+FUNÇÃO espelhar(pasta_rel, manter, padroes)
+    // Tira do repositório os arquivos de pasta_rel que não foram gerados nesta execução (versões antigas).
+    PARA CADA pad EM padroes FAÇA
+        PARA CADA p EM sorted(CLONE_DIR / pasta_rel.glob(pad)) FAÇA
+            SE p.is_file() E p.name NÃO EM manter ENTÃO
+                rel ← p.relative_to(CLONE_DIR).as_posix()
+                SE git("ls-files", rel) ENTÃO
+                    EXECUTAR git("rm", "-q", rel)
+                SENÃO
+                    EXECUTAR p.unlink()
+                FIM SE
+                EXECUTAR removidos.append(rel)
+            FIM SE
+        FIM PARA
+    FIM PARA
+FIM FUNÇÃO
 // ------------------------------------------------------------ 4. o que vai para o repositório
 EXIBIR "[2/5] Copiando artefatos ..."
 // 4a. Tabelas e figuras geradas pelas células (ficam no Drive, em RESULTS_ENV_DIR)
@@ -28846,22 +28849,22 @@ SENÃO
     EXIBIR f'  [aviso] {RESULTS_ENV_DIR} não existe: nenhuma tabela ou figu…
 FIM SE
 // 4b. Manifesto SHA-256 da Célula Extra 2
-PARA CADA var EM ("LAST_JSON_CERT", "LAST_MD_CERT", "LAST_SHA256SUMS") FAÇA
-    v ← globals().get(var)
-    SE v E os.path.isfile(v) ENTÃO
-        EXECUTAR copiar(Path(v), f'docs/provenance/{Path(v).name}')
-    FIM SE
-FIM PARA
-SE NÃO any([c.startswith("docs/provenance/") PARA CADA c EM copiados]) ENTÃO
+_manifesto ← [Path(v) PARA CADA v EM [globals().get(k) PARA CADA k EM ("LAST_JSON_CERT", "LAST_MD_CERT", "LAST_SHA256SUMS")] SE v E os.path.isfile(v)]
+SE _manifesto ENTÃO   // só o manifesto desta execução fica no repositório (os anteriores continuam no histórico do Git)
+    EXECUTAR espelhar("docs/provenance", [p.name PARA CADA p EM _manifesto], ("manifesto_proveniencia_*", "SHA256SUMS_*"))
+    PARA CADA p EM _manifesto FAÇA
+        EXECUTAR copiar(p, f'docs/provenance/{p.name}')
+    FIM PARA
+SENÃO
     EXIBIR "  [aviso] Manifesto da Célula Extra 2 não encontrado nesta s…"
 FIM SE
 // 4b'. Pseudo-códigos da Célula Base (Pseudo-vista), se ela rodou nesta sessão
 _pv ← globals().get("PSEUDO_DIR")
 SE _pv E os.path.isdir(_pv) ENTÃO
-    PARA CADA p EM sorted(Path(_pv).glob("*")) FAÇA
-        SE p.is_file() E p.suffix.lower() EM {".txt", ".html"} ENTÃO
-            EXECUTAR copiar(p, f'docs/pseudocodigos/{p.name}')
-        FIM SE
+    _novos ← [p PARA CADA p EM sorted(Path(_pv).glob("*")) SE p.is_file() E p.suffix.lower() EM {".txt", ".html"}]
+    EXECUTAR espelhar("docs/pseudocodigos", [p.name PARA CADA p EM _novos])   // numeração antiga sai do repositório
+    PARA CADA p EM _novos FAÇA
+        EXECUTAR copiar(p, f'docs/pseudocodigos/{p.name}')
     FIM PARA
 SENÃO
     EXIBIR "  [aviso] Pseudo-códigos não encontrados nesta sessão: rode …"
@@ -28872,24 +28875,6 @@ _SEGREDO ← re.compile("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s
 FUNÇÃO ocultar(s)
     RETORNAR _EMAIL.sub("[e-mail oculto]", _SEGREDO.sub("\1\2[OCULTO]\2", s))
 FIM FUNÇÃO
-SE EXPORTAR_CELULAS ENTÃO
-    ip ← (get_ipython() SE "get_ipython" EM globals() SENÃO NULO)
-    ultima ← {}
-    PARA CADA src EM (ip.user_ns.get("_ih", []) SE ip NÃO É NULO SENÃO []) FAÇA
-        m ← re.search("^#\s*C[ée]lula\s+([^:\n]+)", src OU "", re.M)
-        SE m ENTÃO
-            ultima[m.group(1).strip()] ← src
-        FIM SE
-    FIM PARA
-    PARA CADA (rot, src) EM ultima.items() FAÇA
-        slug ← re.sub("[^0-9A-Za-z]+", "_", rot.lower().replace("é", "e")).strip("_")
-        dst ← CLONE_DIR / "src" / "celulas" / f'celula_{slug}.py'
-        EXECUTAR dst.parent.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
-        EXECUTAR dst.write_text(ocultar(src).rstrip() + " ", encoding="utf-8")
-        EXECUTAR copiados.append(dst.relative_to(CLONE_DIR).as_posix())
-    FIM PARA
-FIM SE
-// 4d. O notebook (a última versão SALVA no Drive: use Ctrl+S antes de rodar esta célula)
 SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
     PARA CADA cand EM (Path("/content/drive/MyDrive/Colab Notebooks") / NOTEBOOK_NAME, Path("/content/drive/MyDrive") / NOTEBOOK_NAME) FAÇA
         SE cand.is_file() ENTÃO
@@ -28898,19 +28883,56 @@ SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
         FIM SE
     FIM PARA
 FIM SE
+SE EXPORTAR_CELULAS ENTÃO
+    // Código de TODAS as células, lido do notebook salvo (e não só das executadas nesta sessão).
+    (fontes, do_notebook) ← ([], FALSO)
+    SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+        TENTAR
+            fontes ← ["".join(c.get("source", [])) PARA CADA c EM json.loads(Path(NOTEBOOK_PATH).read_text(encoding="utf-8"))["cells"] SE c.get("cell…
+            do_notebook ← VERDADEIRO
+        SE OCORRER ERRO Exception
+            fontes ← []
+        FIM TENTAR
+    FIM SE
+    SE NÃO fontes ENTÃO
+        ip ← (get_ipython() SE "get_ipython" EM globals() SENÃO NULO)
+        fontes ← (list(ip.user_ns.get("_ih", [])) SE ip NÃO É NULO SENÃO [])
+    FIM SE
+    ultima ← {}
+    PARA CADA src EM fontes FAÇA
+        m ← re.search("^#\s*(?:@title\s*#\s*)?C[ée]lula\s+([^:\n]+)", src OU "", re.M)
+        SE m ENTÃO
+            ultima[m.group(1).strip()] ← src
+        FIM SE
+    FIM PARA
+    nomes ← {}
+    PARA CADA (rot, src) EM ultima.items() FAÇA
+        slug ← re.sub("[^0-9A-Za-z]+", "_", unicodedata.normalize("NFKD", rot.lower()).encode("ascii", "ignore").decode()).strip("_")
+        nomes[f'celula_{slug}.py'] ← src
+    FIM PARA
+    SE do_notebook E nomes ENTÃO   // com o notebook inteiro em mãos, versões antigas de células saem do repositório
+        EXECUTAR espelhar("src/celulas", set(nomes), ("*.py"))
+    FIM SE
+    PARA CADA (nome, src) EM nomes.items() FAÇA
+        dst ← CLONE_DIR / "src" / "celulas" / nome
+        EXECUTAR dst.parent.mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+        EXECUTAR dst.write_text(ocultar(src).rstrip() + " ", encoding="utf-8")
+        EXECUTAR copiados.append(dst.relative_to(CLONE_DIR).as_posix())
+    FIM PARA
+FIM SE
+// 4d. O notebook (a última versão SALVA no Drive: use Ctrl+S antes de rodar esta célula)
 SE NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
     EXECUTAR copiar(Path(NOTEBOOK_PATH), f'notebooks/{Path(NOTEBOOK_PATH).name}')
 SENÃO
     EXIBIR "  [aviso] Notebook não encontrado no Drive (defina DETECTED_…"
 FIM SE
 // 4e. Certificados antigos que listam caminhos pessoais do Drive (versão anterior da Célula Extra 2)
-removidos ← []
 SE REMOVER_CERTIFICADOS_COM_CAMINHOS ENTÃO
     PARA CADA p EM sorted(CLONE_DIR / "docs" / "provenance".glob("certificado_autoria_*")) FAÇA
         TENTAR
             SE "/content/drive/" EM p.read_text(encoding="utf-8", errors="ignore") OU ""relative_path": "drive/" EM p.read_text(encoding="utf-8", err…
                 EXECUTAR git("rm", "-q", str(p.relative_to(CLONE_DIR)))
-                EXECUTAR removidos.append(p.name)
+                EXECUTAR removidos.append(p.relative_to(CLONE_DIR).as_posix())
             FIM SE
         SE OCORRER ERRO OSError
             (nada a fazer)
@@ -28973,8 +28995,7 @@ SE grandes ENTÃO
     EXIBIR "  Acima de 95 MB (ficam só no Drive): " + ", ".join([f'{n} ({mb} MB)' PARA CADA (n, mb) EM grandes])
 FIM SE
 SE removidos ENTÃO
-    EXIBIR "  Certificados antigos com caminhos do Drive retirados do re…" + ", ".join(removidos)
-    EXIBIR "  (continuam no histórico do git; para apagá-los de vez é pr…"
+    EXIBIR f"  Retirados do repositório (versões antigas; continuam no hist… + (" …" SE len(removidos) &gt; 4 SENÃO "")
 FIM SE
 SE NÃO git("status", "--porcelain") ENTÃO
     EXIBIR "[5/5] Nada mudou: o repositório já está sincronizado."
@@ -29017,9 +29038,9 @@ EXECUTAR shutil.rmtree(CLONE_DIR, ignore_errors=VERDADEIRO)
 <pre>[1/5] Clonando https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau.git ...
 [2/5] Copiando artefatos ...
 [3/5] Verificando dados sensíveis ...
-[4/5] 141 arquivos copiados, 50 novos ou alterados, 0 removidos.
+[4/5] 142 arquivos copiados, 6 novos ou alterados, 0 removidos.
 [5/5] Enviando para o ramo main ...
-[Deploy] Concluído: https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau/commit/8c7ccbd88dde78e2af64fe67fe1adfe9f18f7bbc
+[Deploy] Concluído: https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau/commit/656d43950fcfa25c8383122a048f2aac8aff4fc9
 </pre>
 </div>
 </div>
@@ -29268,21 +29289,21 @@ FIM SE
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>[1/5] Notebook copiado (salvo no Drive em 18/11/2026 19:02; se for antigo, use Ctrl+S e rode de novo).
+<pre>[1/5] Notebook copiado (salvo no Drive em 18/11/2026 19:32; se for antigo, use Ctrl+S e rode de novo).
 [1/5] Relatório HTML gerado.
 [2/5] 57 tabelas e 28 figuras copiadas (subpastas preservadas, sem sobrescrever nomes iguais).
 [3/5] Código de 32 células, pip freeze e manifesto SHA-256 incluídos.
 [4/5] Índice SHA-256 de 130 arquivos gravado no pacote.
-[5/5] Pacote salvo no Drive: /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/backups_completos/BACKUP_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_190223.zip (30.5 MB) | SHA-256 bf92609894b57cff…
+[5/5] Pacote salvo no Drive: /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/backups_completos/BACKUP_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_193247.zip (30.5 MB) | SHA-256 d62afe80e6a3eeb3…
   O notebook e o HTML guardam as saídas como foram exibidas: não publique o pacote sem revisar.
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="a15dc191-27c1-4cc1-ad38-8f2cf1b6e302" tabindex="0">
+<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="e35f0409-60ca-4cb7-be52-6510e1590020" tabindex="0">
 <script type="text/javascript">
-var element = document.getElementById('a15dc191-27c1-4cc1-ad38-8f2cf1b6e302');
+var element = document.getElementById('e35f0409-60ca-4cb7-be52-6510e1590020');
 
     async function download(id, filename, size) {
       if (!google.colab.kernel.accessAllowed) {
@@ -29329,10 +29350,10 @@ var element = document.getElementById('a15dc191-27c1-4cc1-ad38-8f2cf1b6e302');
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="b5c6e201-ddeb-44c1-832c-03f7d9c1ba13" tabindex="0">
+<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="39dc815a-e6e4-4545-a213-f5c533327a49" tabindex="0">
 <script type="text/javascript">
-var element = document.getElementById('b5c6e201-ddeb-44c1-832c-03f7d9c1ba13');
-download("download_dc261c76-cd30-4d37-821a-c07a0e07080d", "BACKUP_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_190223.zip", 31983584)
+var element = document.getElementById('39dc815a-e6e4-4545-a213-f5c533327a49');
+download("download_0f1366a7-23bb-4721-bae2-2816df5ff7df", "BACKUP_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_193247.zip", 31983562)
 </script>
 </div>
 </div>
