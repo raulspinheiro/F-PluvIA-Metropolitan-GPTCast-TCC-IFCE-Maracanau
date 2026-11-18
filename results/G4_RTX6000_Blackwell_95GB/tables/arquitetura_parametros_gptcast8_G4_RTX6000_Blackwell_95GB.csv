@@ -1,0 +1,4 @@
+Ambiente de Execução,Hardware_Tag,Componente da Arquitetura GPTCast-8x8,Status no Fine-Tuning,Quantidade de Parâmetros,Proporção (%),Módulos,Peso em Memória (FP32 / BF16)
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Modelo completo (Estágio 1 + Estágio 2),VQGAN congelado + GPT-2 ajustado,395.640.601 (395.64 M),100.00%,,1509.25 MB / 754.62 MB
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB, -> Estágio 2: Transformer temporal (GPT-2),"Ajustado na RMF (treino 2019–2023, validação 2024)",304.932.864 (304.93 M),77.07%,366,1163.23 MB / 581.61 MB
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB, -> Estágio 1: Autoencoder espacial (VQGAN),Congelado (pesos originais do GPTCast),90.707.737 (90.71 M),22.93%,284,346.02 MB / 173.01 MB

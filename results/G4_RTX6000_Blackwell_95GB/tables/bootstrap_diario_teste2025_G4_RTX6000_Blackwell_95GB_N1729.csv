@@ -1,0 +1,6 @@
+Modelo,CSI ≥ 0.5 (IC 95%),MAE mm/h (IC 95%),Ajustado − este: ΔCSI (IC 95%),Ajustado − este: ΔMAE (IC 95%),Leitura
+GPTCast-8x8 (Fine-Tuned RMF),0.262 a 0.353,0.5079 a 0.6972,,,
+GPTCast-8x8 (Zero-Shot),0.324 a 0.417,0.4409 a 0.6437,-0.071 a -0.056,+0.0425 a +0.0802,ajustado pior em CSI
+LINDA (pysteps),0.464 a 0.538,0.2714 a 0.3940,-0.217 a -0.176,+0.2342 a +0.3091,ajustado pior em CSI
+Fluxo Óptico LK (pysteps),0.462 a 0.537,0.2522 a 0.3783,-0.213 a -0.174,+0.2538 a +0.3260,ajustado pior em CSI
+Persistência (Baseline),0.417 a 0.505,0.3051 a 0.4461,-0.176 a -0.134,+0.1996 a +0.2578,ajustado pior em CSI

@@ -1,0 +1,4 @@
+Modelo,lr,val/loss (nats/token),Perplexidade (exp L),val/loss quadros 8–11,Delta_alt_menos_atual,IC95_inf,IC95_sup,Janelas,Dias,Promovido
+Zero-Shot,—,5.1776,177.2,4.9898,0.0014,0.0005,0.0024,2224,114,False
+Treino atual,5e-05,4.7167,111.8,4.534,0.0014,0.0005,0.0024,2224,114,False
+Treino alternativo,1e-05,4.7181,112.0,4.5357,0.0014,0.0005,0.0024,2224,114,False
