@@ -1,6 +1,0 @@
-Ambiente_Execucao,Hardware_Tag,Modelo,Amostras_Teste_2025,Tempo_Medio_4Passos_s,Desvio_Padrao_4Passos_s,Tempo_Medio_Por_Passo_s,Tempo_Total_Lote_s
-NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,GPTCast-8x8 (Fine-Tuned RMF),30,1.3998,0.007,0.3499,41.99
-NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,GPTCast-8x8 (Zero-Shot),30,1.3894,0.0079,0.3474,41.68
-NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,LINDA (pysteps),30,0.884,0.3068,0.221,26.52
-NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Fluxo Óptico LK (pysteps),30,0.0242,0.0044,0.006,0.73
-NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Persistência (Baseline),30,0.0,0.0,0.0,0.0

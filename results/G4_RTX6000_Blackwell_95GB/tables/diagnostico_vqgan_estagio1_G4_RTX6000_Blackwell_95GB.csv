@@ -1,2 +1,0 @@
-Ambiente_Execucao,Hardware_Tag,Componente_Modelo,Parametros_Milhoes,Status_Treinamento,Tempo_Reconstrucao_ms,MAE_Reconstrucao_mmh,RMSE_Reconstrucao_mmh,Correlacao_Pearson,SSIM_Espacial
-NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),G4_RTX6000_Blackwell_95GB,Estágio 1: Autoencoder Espacial (VQGAN),90.71 M,Congelado (requires_grad=False / eval),207.646,0.12,0.346,0.9542,0.9304
