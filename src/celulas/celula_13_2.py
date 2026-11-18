@@ -1,6 +1,7 @@
 # @title
 # Célula 13.2: Métricas de Classificação por Nível de Alerta no TESTE CEGO DE 2026 (Célula 13.1), por pixel e por
 # MUNICÍPIO da RMF, lado a lado com o teste de 2025 (Célula 12) — o equivalente da Célula 12.1 para 2026.
+# Também sorteia os dias de novo, mil vezes, para ver se cada vantagem no F1 é de verdade ou só sorte (IC de 95 %).
 # Não roda inferência: usa CELL13_1_RESULTS e CELL12_FULL_2025_RESULTS já em memória.
 import os
 
@@ -16,6 +17,8 @@ OUT_DIR = os.path.join(RESULTS_ENV_DIR, 'teste_cego_2026')
 os.makedirs(OUT_DIR, exist_ok=True)
 ALERT_LEVELS = {0.5: 'Atenção (≥ 0,5 mm/h)', 1.0: 'Alerta (≥ 1,0 mm/h)', 5.0: 'Severo (≥ 5,0 mm/h)'}
 LEADS = [30 * (s + 1) for s in range(FORECAST_STEPS)]
+N_BOOT = 1000                                   # reamostragens de dias inteiros
+SEED = int(globals().get('SEED', 42))
 
 if 'CELL13_1_RESULTS' not in globals():
   raise RuntimeError('Rode a Célula 13.1 antes desta (nesta mesma sessão).')
@@ -38,12 +41,14 @@ N26 = int(R13['janelas_prontas'])
 PROD26 = ', '.join(sorted(set(np.asarray(R13['produto']).tolist())))
 
 conjuntos = {f'2026 ({N26} janelas, {PROD26})': (R13['obs_rain'], {k: R13[f'{k}_rain'] for k in NOMES})}
+datas = {list(conjuntos)[0]: np.asarray(R13['timestamps_t0'])}
 if R12 is not None:
   if R12.get('amostragem', 'padrao') != R13.get('amostragem', 'padrao'):
     print('[Aviso Célula 13.2] Células 12 e 13.1 com decodificações diferentes: a comparação 2025 x 2026 as mistura.')
   m25 = np.isin(pd.to_datetime(np.asarray(R12['timestamps_t0'])).month, [2, 3, 4, 5])
   conjuntos[f'2025 ({int(m25.sum())} janelas, IMERG-FR)'] = (
       R12['obs_rain'][m25], {k: R12[f'{k}_rain'][m25] for k in NOMES if f'{k}_rain' in R12})
+  datas[list(conjuntos)[1]] = np.asarray(R12['timestamps_t0'])[m25]
 else:
   print('[Célula 13.2] CELL12_FULL_2025_RESULTS ausente: só 2026 (rode a Célula 12 para comparar com 2025).')
 ROTULO_2026, ROTULO_2025 = list(conjuntos)[0], (list(conjuntos)[1] if len(conjuntos) > 1 else None)
@@ -93,12 +98,14 @@ def municipal_means(rain_4d):
 # ---------------------------------------------------------------- 3. tabelas
 rows = []
 unidades = ['pixel', 'município'] if mun_masks else ['pixel']
+mun_cache = {}                                   # médias municipais, reaproveitadas no bootstrap
 for conj, (obs, preds) in conjuntos.items():
-  obs_mun = municipal_means(obs) if mun_masks else None
+  if mun_masks:
+    mun_cache[conj] = (municipal_means(obs), {k: municipal_means(P) for k, P in preds.items()})
   for unidade in unidades:
-    o_src = obs if unidade == 'pixel' else obs_mun
+    o_src = obs if unidade == 'pixel' else mun_cache[conj][0]
     for k, P in preds.items():
-      p_src = P if unidade == 'pixel' else municipal_means(P)
+      p_src = P if unidade == 'pixel' else mun_cache[conj][1][k]
       for thr, nivel in ALERT_LEVELS.items():
         for s, lead in enumerate(LEADS + ['todos']):
           sel = slice(None) if lead == 'todos' else s
@@ -124,12 +131,59 @@ if ROTULO_2025:      # F1 por município: 2025 x 2026 lado a lado, com a diferen
           .pivot_table(index=['Nível de alerta', 'Modelo'], columns='Conjunto', values='F1 [%]', sort=False, dropna=False))
   comp = comp[[ROTULO_2025, ROTULO_2026]]
   comp['Δ F1 (2026 − 2025)'] = comp[ROTULO_2026] - comp[ROTULO_2025]
-  comp['Posição em 2026'] = comp.groupby(level=0)[ROTULO_2026].rank(ascending=False).astype('Int64')
+  comp['Posição em 2026'] = comp.groupby(level=0)[ROTULO_2026].rank(ascending=False, method='min').astype('Int64')
   print(f'\n=== F1 [%] por {unidades[-1]}: 2025 x 2026, média de +30 a +120 min (posição 1 = melhor no nível) ===')
   with pd.option_context('display.max_rows', None):
     display(comp.round(1))
 
-# ---------------------------------------------------------------- 4. figuras
+
+# ------------------------------------------- 4. IC de 95 % do F1 (bootstrap por dias inteiros)
+# As janelas de um mesmo dia pertencem ao mesmo evento de chuva e não são independentes: reamostra-se o dia
+# inteiro. As mesmas reamostragens valem para todos os métodos (comparação pareada).
+def bootstrap_f1(o, preds, ts):
+  """o, preds[k]: (N, passos, ...). Devolve {(k, thr): array N_BOOT de F1 [%]} e a estimativa pontual."""
+  _, inv = np.unique(pd.to_datetime(ts).normalize().values, return_inverse=True)
+  n_dias = inv.max() + 1
+  amostras = np.random.default_rng(SEED).integers(0, n_dias, (N_BOOT, n_dias))
+  est, pontual = {}, {}
+  for thr in ALERT_LEVELS:
+    ob = (o >= thr).reshape(len(o), -1)
+    for k, P in preds.items():
+      pb = (P >= thr).reshape(len(P), -1)
+      por_dia = [np.bincount(inv, x.sum(1), n_dias) for x in (ob & pb, ~ob & pb, ob & ~pb)]
+      tp, fp, fn = (c[amostras].sum(1) for c in por_dia)
+      est[(k, thr)] = 100 * 2 * tp / np.maximum(2 * tp + fp + fn, 1)
+      t, f, m = (c.sum() for c in por_dia)
+      pontual[(k, thr)] = 100 * 2 * t / max(2 * t + f + m, 1)
+  return est, pontual, n_dias
+
+
+unidade_boot = unidades[-1]
+linhas_boot = []
+for conj, (obs, preds) in conjuntos.items():
+  o_b, p_b = (mun_cache[conj] if unidade_boot == 'município' else (obs, preds))
+  est, pontual, n_dias = bootstrap_f1(o_b, p_b, datas[conj])
+  for thr, nivel in ALERT_LEVELS.items():
+    for k in p_b:
+      lo, hi = np.percentile(est[(k, thr)], [2.5, 97.5])
+      linha = {'Conjunto': conj, 'Nível de alerta': nivel, 'Modelo': NOMES[k], 'Dias': n_dias,
+               'F1 [%]': round(pontual[(k, thr)], 1), 'F1 IC95 [%]': f'{lo:.1f} – {hi:.1f}',
+               '_lo': lo, '_hi': hi}
+      if k != 'ft':
+        d = est[('ft', thr)] - est[(k, thr)]
+        dlo, dhi = np.percentile(d, [2.5, 97.5])
+        linha['ΔF1 (FT-G − método) IC95'] = f'{dlo:+.1f} – {dhi:+.1f}'
+        linha['FT-G em relação ao método'] = ('melhor' if dlo > 0 else 'pior' if dhi < 0 else 'empate técnico')
+      linhas_boot.append(linha)
+df_boot = pd.DataFrame(linhas_boot)
+boot_csv = os.path.join(OUT_DIR, f'fpluvia_f1_{unidade_boot.replace("í", "i")}_bootstrap_dias_2025_2026_{ENV_TAG}{SUF}.csv')
+df_boot.drop(columns=['_lo', '_hi']).to_csv(boot_csv, index=False)
+print(f'\n=== F1 por {unidade_boot} com IC de 95 % (bootstrap por dias, {N_BOOT} reamostragens), média de +30 a +120 min ===')
+print('"melhor"/"pior": o IC da diferença não cruza zero; "empate técnico": cruza zero (diferença não significativa).')
+with pd.option_context('display.max_rows', None, 'display.max_colwidth', None):
+  display(df_boot.drop(columns=['_lo', '_hi']).fillna('—').set_index(['Conjunto', 'Nível de alerta', 'Modelo']))
+
+# ---------------------------------------------------------------- 5. figuras
 styles = {'ft': ('#d62728', 'o', '-'), 'ft_media': ('#9467bd', 'P', '-.'), 'zs': ('#ff7f0e', 'v', '--'),
           'linda': ('#1f77b4', '^', '-'), 'lk': ('#2ca02c', 'd', '--'), 'pers': ('#7f7f7f', 's', ':')}
 unidade_plot = unidades[-1]
@@ -170,11 +224,18 @@ if ROTULO_2025:
       ax.set_title(f'F1 — {nivel} (sem casos)', fontweight='bold'); continue
     sub = comp.loc[nivel].reindex(nomes)
     cores = [styles[k][0] for k in NOMES]
-    b25 = ax.bar(xs - 0.2, sub[ROTULO_2025], 0.4, color=cores, alpha=0.35, edgecolor=cores)
-    b26 = ax.bar(xs + 0.2, sub[ROTULO_2026], 0.4, color=cores, edgecolor='black', lw=0.6)
+    def _err(conj):   # barras de erro = IC de 95 % do bootstrap por dias
+      g = df_boot[(df_boot['Conjunto'] == conj) & (df_boot['Nível de alerta'] == nivel)].set_index('Modelo').reindex(nomes)
+      f1 = sub[conj].values
+      return np.vstack([np.clip(f1 - g['_lo'].values, 0, None), np.clip(g['_hi'].values - f1, 0, None)])
+    eb = {'ecolor': 'black', 'capsize': 3, 'elinewidth': 0.9}
+    b25 = ax.bar(xs - 0.2, sub[ROTULO_2025], 0.4, color=cores, alpha=0.35, edgecolor=cores,
+                 yerr=_err(ROTULO_2025) if unidade_boot == unidade_plot else None, error_kw=eb)
+    b26 = ax.bar(xs + 0.2, sub[ROTULO_2026], 0.4, color=cores, edgecolor='black', lw=0.6,
+                 yerr=_err(ROTULO_2026) if unidade_boot == unidade_plot else None, error_kw=eb)
     for b, v in zip(b26, sub[ROTULO_2026]):
       if np.isfinite(v):
-        ax.text(b.get_x() + b.get_width() / 2, v + 0.8, f'{v:.1f}', ha='center', fontsize=8)
+        ax.text(b.get_x() + b.get_width() / 2, v + 3.5, f'{v:.1f}', ha='center', fontsize=8)
     ax.set_title(f'F1 — {nivel}', fontweight='bold')
     ax.set_xticks(xs)
     ax.set_xticklabels([CURTO[k] for k in NOMES], fontsize=9)
@@ -183,12 +244,15 @@ if ROTULO_2025:
   fig.legend([plt.Rectangle((0, 0), 1, 1, color='gray', alpha=0.35), plt.Rectangle((0, 0), 1, 1, color='gray', ec='black')],
              [ROTULO_2025 + ' — barra clara', ROTULO_2026 + ' — barra escura'],
              loc='lower center', bbox_to_anchor=(0.5, -0.08), ncol=2, frameon=False)
-  fig.suptitle(f'Alertas por {unidade_plot}: teste 2025 x teste cego 2026 | {DECOD_TXT} | {ENV_LABEL}',
+  fig.suptitle(f'Alertas por {unidade_plot}: teste 2025 x teste cego 2026 (barras de erro: IC 95 %, bootstrap por dias) | '
+               f'{DECOD_TXT} | {ENV_LABEL}',
                fontsize=12.5, fontweight='bold')
   png_n = os.path.join(OUT_DIR, f'f1_alertas_2025_vs_2026_{ENV_TAG}{SUF}.png')
   fig.savefig(png_n, dpi=300, bbox_inches='tight')
   plt.show()
   print(f'[Célula 13.2] Visão geral -> {png_n}')
 
-CELL13_2_RESULTS = {'classificacao': df_cls, 'f1_2025_vs_2026': comp if ROTULO_2025 else None}
+CELL13_2_RESULTS = {'classificacao': df_cls, 'f1_2025_vs_2026': comp if ROTULO_2025 else None,
+                    'f1_bootstrap': df_boot.drop(columns=['_lo', '_hi'])}
+print(f'[Célula 13.2] IC do F1 -> {boot_csv}')
 print(f'[Célula 13.2] Tabela -> {cls_csv}\n[Célula 13.2] Painel por horizonte -> {png_h}')
