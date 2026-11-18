@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b792aef8">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a716349b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9836,7 +9836,7 @@ Relatório salvo em: /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/res
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="C%C3%A9lula-Extra-4-(confer%C3%AAncia-r%C3%A1pida):-registro-de-treino-e-perda-por-%C3%A9poca.">Célula Extra 4 (conferência rápida): registro de treino e perda por época.<a class="anchor-link" href="#C%C3%A9lula-Extra-4-(confer%C3%AAncia-r%C3%A1pida):-registro-de-treino-e-perda-por-%C3%A9poca.">¶</a></h1>
+<h1 id="C%C3%A9lula-4-(confer%C3%AAncia-r%C3%A1pida):-registro-de-treino-e-perda-por-%C3%A9poca">Célula 4 (conferência rápida): registro de treino e perda por época<a class="anchor-link" href="#C%C3%A9lula-4-(confer%C3%AAncia-r%C3%A1pida):-registro-de-treino-e-perda-por-%C3%A9poca">¶</a></h1>
 </div>
 </div>
 </div>
@@ -27779,6 +27779,27 @@ SE reg E os.path.isfile(reg) ENTÃO
         (nada a fazer)
     FIM TENTAR
 FIM SE
+// Caminhos absolutos (ex.: os do registro de treino) viram relativos às pastas do projeto: o manifesto vai para um
+// repositório público e não pode listar o Drive pessoal.
+_RAIZES ← sorted([(str(Path(v)), k) PARA CADA (k, v) EM PASTAS.items() SE v], key=FUNÇÃO(t) ↦ −len(t[0]))
+FUNÇÃO _relativo(x)
+    SE isinstance(x, dict) ENTÃO
+        RETORNAR [k: _relativo(v) PARA CADA (k, v) EM x.items()]
+    FIM SE
+    SE isinstance(x, (list, tuple)) ENTÃO
+        RETORNAR [_relativo(v) PARA CADA v EM x]
+    FIM SE
+    SE isinstance(x, str) E ("/content/" EM x OU "/MyDrive" EM x) ENTÃO
+        PARA CADA (raiz, rotulo) EM _RAIZES FAÇA
+            SE x.startswith(raiz) ENTÃO
+                RETORNAR f'{rotulo}/{os.path.relpath(x, raiz)}'
+            FIM SE
+        FIM PARA
+        RETORNAR os.path.basename(x.rstrip("/"))
+    FIM SE
+    RETORNAR x
+FIM FUNÇÃO
+execucao ← _relativo(execucao)
 manifesto ← {"tipo": "Manifesto de integridade e proveniência (SHA-256)", "o_que_comprova": "Que os arquivos listados não mudaram desde a emissão: ba…
 // ------------------------------------------------------------------ 5. arquivos de saída
 gpu_slug ← re.sub("[^A-Za-z0-9]+", "_", gpu.get("modelo", "CPU")).strip("_")
@@ -27822,7 +27843,7 @@ EXIBIR f'[Célula Extra 2] Arquivos -&gt; {DEST} (para o Deploy) e {DEST_DR…
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>[Célula Extra 2] 516 artefatos (23.22 GB) em checkpoints (7), comparativo_hardware (3), notebook (1), resultados (469), series_2km (36)
 [Célula Extra 2] Código de 29 células registrado (notebook salvo) | GPU: NVIDIA RTX PRO 6000 Blackwell Server Edition
-[Célula Extra 2] Hash raiz: ae8e1df1a5264b40cadd453a726bbf36462be232315d259e4748f5c971b735ab
+[Célula Extra 2] Hash raiz: 145fb5ddab8ceb0ff523fc6531ea4c43299bb4a8bc0d1628658187c201288d07
 [Célula Extra 2] Arquivos -&gt; /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/resultados_G4_RTX6000_Blackwell_95GB/cell12_previsoes_2a17da25e1d8_n1729_s42/docs/provenance (para o Deploy) e /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/resultados_G4_RTX6000_Blackwell_95GB/provenance | 2.2 s
 </pre>
 </div>
@@ -28301,14 +28322,14 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>[Pseudo-vista] Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 19:00; use Ctrl+S antes, se tiver mudado algo).
+<pre>[Pseudo-vista] Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 21:51; use Ctrl+S antes, se tiver mudado algo).
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output" data-mime-type="text/html" tabindex="0">
-<div class="colab-df-container" id="df-71b7ed09-ae62-49eb-9c71-c340e19d8966">
+<div class="colab-df-container" id="df-ef16683b-2312-4c92-8322-c2711610748a">
 <div>
 <style scoped="">
     .dataframe tbody tr th:only-of-type {
@@ -28364,199 +28385,213 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 </tr>
 <tr>
 <th>4</th>
+<td>Célula (Limpeza de Saídas Obsoletas)</td>
+<td>04_celula_limpeza_de_saidas_obsoletas.txt</td>
+<td>142</td>
+<td>117</td>
+</tr>
+<tr>
+<th>5</th>
 <td>Célula 2</td>
-<td>04_celula_2.txt</td>
+<td>05_celula_2.txt</td>
 <td>425</td>
 <td>351</td>
 </tr>
 <tr>
-<th>5</th>
+<th>6</th>
 <td>Célula 3</td>
-<td>05_celula_3.txt</td>
+<td>06_celula_3.txt</td>
 <td>372</td>
 <td>331</td>
 </tr>
 <tr>
-<th>6</th>
+<th>7</th>
 <td>Célula 4</td>
-<td>06_celula_4.txt</td>
+<td>07_celula_4.txt</td>
 <td>400</td>
 <td>330</td>
 </tr>
 <tr>
-<th>7</th>
+<th>8</th>
+<td>Célula de código nº 8</td>
+<td>08_celula_de_codigo_no_8.txt</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<th>9</th>
 <td>Célula 4.1</td>
-<td>07_celula_4_1.txt</td>
+<td>09_celula_4_1.txt</td>
 <td>240</td>
 <td>197</td>
 </tr>
 <tr>
-<th>8</th>
+<th>10</th>
 <td>Célula 4.2</td>
-<td>08_celula_4_2.txt</td>
+<td>10_celula_4_2.txt</td>
 <td>151</td>
 <td>118</td>
 </tr>
 <tr>
-<th>9</th>
+<th>11</th>
 <td>Célula 4.3 (Opcional - Fine-Tuning Suave - Add...</td>
-<td>09_celula_4_3_opcional_fine_tuning_suave_adds_...</td>
+<td>11_celula_4_3_opcional_fine_tuning_suave_adds_...</td>
 <td>345</td>
 <td>269</td>
 </tr>
 <tr>
-<th>10</th>
+<th>12</th>
 <td>Célula 4.4</td>
-<td>10_celula_4_4.txt</td>
+<td>12_celula_4_4.txt</td>
 <td>262</td>
 <td>224</td>
 </tr>
 <tr>
-<th>11</th>
+<th>13</th>
 <td>Célula 4.5</td>
-<td>11_celula_4_5.txt</td>
+<td>13_celula_4_5.txt</td>
 <td>339</td>
 <td>308</td>
 </tr>
 <tr>
-<th>12</th>
+<th>14</th>
 <td>Célula (Activates Checkpoint)</td>
-<td>12_celula_activates_checkpoint.txt</td>
+<td>14_celula_activates_checkpoint.txt</td>
 <td>150</td>
 <td>116</td>
 </tr>
 <tr>
-<th>13</th>
+<th>15</th>
 <td>Célula 5</td>
-<td>13_celula_5.txt</td>
+<td>15_celula_5.txt</td>
 <td>173</td>
 <td>155</td>
 </tr>
 <tr>
-<th>14</th>
+<th>16</th>
 <td>Célula 6</td>
-<td>14_celula_6.txt</td>
+<td>16_celula_6.txt</td>
 <td>152</td>
 <td>115</td>
 </tr>
 <tr>
-<th>15</th>
-<td>Célula de código nº 15</td>
-<td>15_celula_de_codigo_no_15.txt</td>
-<td>5</td>
-<td>5</td>
-</tr>
-<tr>
-<th>16</th>
+<th>17</th>
 <td>Célula 7</td>
-<td>16_celula_7.txt</td>
+<td>17_celula_7.txt</td>
 <td>160</td>
 <td>142</td>
 </tr>
 <tr>
-<th>17</th>
+<th>18</th>
 <td>Célula 8</td>
-<td>17_celula_8.txt</td>
+<td>18_celula_8.txt</td>
 <td>158</td>
 <td>142</td>
 </tr>
 <tr>
-<th>18</th>
+<th>19</th>
 <td>Célula 9</td>
-<td>18_celula_9.txt</td>
+<td>19_celula_9.txt</td>
 <td>196</td>
 <td>180</td>
 </tr>
 <tr>
-<th>19</th>
+<th>20</th>
 <td>Célula 10</td>
-<td>19_celula_10.txt</td>
+<td>20_celula_10.txt</td>
 <td>157</td>
 <td>134</td>
 </tr>
 <tr>
-<th>20</th>
+<th>21</th>
 <td>Célula 11</td>
-<td>20_celula_11.txt</td>
+<td>21_celula_11.txt</td>
 <td>143</td>
 <td>139</td>
 </tr>
 <tr>
-<th>21</th>
+<th>22</th>
 <td>Célula 12</td>
-<td>21_celula_12.txt</td>
+<td>22_celula_12.txt</td>
 <td>463</td>
 <td>446</td>
 </tr>
 <tr>
-<th>22</th>
+<th>23</th>
 <td>Célula 12.1</td>
-<td>22_celula_12_1.txt</td>
+<td>23_celula_12_1.txt</td>
 <td>150</td>
 <td>131</td>
 </tr>
 <tr>
-<th>23</th>
+<th>24</th>
 <td>Célula 13</td>
-<td>23_celula_13.txt</td>
+<td>24_celula_13.txt</td>
 <td>148</td>
 <td>120</td>
 </tr>
 <tr>
-<th>24</th>
+<th>25</th>
 <td>Célula 13.1</td>
-<td>24_celula_13_1.txt</td>
+<td>25_celula_13_1.txt</td>
 <td>593</td>
 <td>588</td>
 </tr>
 <tr>
-<th>25</th>
+<th>26</th>
 <td>Célula 13.2</td>
-<td>25_celula_13_2.txt</td>
+<td>26_celula_13_2.txt</td>
 <td>258</td>
 <td>242</td>
 </tr>
 <tr>
-<th>26</th>
+<th>27</th>
+<td>Célula 13.3</td>
+<td>27_celula_13_3.txt</td>
+<td>244</td>
+<td>196</td>
+</tr>
+<tr>
+<th>28</th>
 <td>Célula Extra 1</td>
-<td>26_celula_extra_1.txt</td>
+<td>28_celula_extra_1.txt</td>
 <td>267</td>
 <td>253</td>
 </tr>
 <tr>
-<th>27</th>
-<td>Célula Deploy</td>
-<td>27_celula_deploy.txt</td>
-<td>245</td>
-<td>249</td>
+<th>29</th>
+<td>Célula Extra 2</td>
+<td>29_celula_extra_2.txt</td>
+<td>256</td>
+<td>214</td>
 </tr>
 <tr>
-<th>28</th>
+<th>30</th>
 <td>Célula Base (Pseudo-vista)</td>
-<td>28_celula_base_pseudo_vista.txt</td>
+<td>30_celula_base_pseudo_vista.txt</td>
 <td>363</td>
 <td>407</td>
 </tr>
 <tr>
-<th>29</th>
+<th>31</th>
 <td>Célula Deploy</td>
-<td>29_celula_deploy.txt</td>
+<td>31_celula_deploy.txt</td>
 <td>257</td>
 <td>261</td>
 </tr>
 <tr>
-<th>30</th>
-<td>Célula de código nº 30</td>
-<td>30_celula_de_codigo_no_30.txt</td>
-<td>120</td>
-<td>90</td>
+<th>32</th>
+<td>Célula Backup</td>
+<td>32_celula_backup.txt</td>
+<td>180</td>
+<td>190</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="colab-df-buttons">
 <div class="colab-df-container">
-<button class="colab-df-convert" onclick="convertToInteractive('df-71b7ed09-ae62-49eb-9c71-c340e19d8966')" style="display:none;" title="Convert this dataframe to an interactive table.">
+<button class="colab-df-convert" onclick="convertToInteractive('df-ef16683b-2312-4c92-8322-c2711610748a')" style="display:none;" title="Convert this dataframe to an interactive table.">
 <svg height="24px" viewbox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
 <path d="M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z"></path>
 </svg>
@@ -28603,12 +28638,12 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
   </style>
 <script>
       const buttonEl =
-        document.querySelector('#df-71b7ed09-ae62-49eb-9c71-c340e19d8966 button.colab-df-convert');
+        document.querySelector('#df-ef16683b-2312-4c92-8322-c2711610748a button.colab-df-convert');
       buttonEl.style.display =
         google.colab.kernel.accessAllowed ? 'block' : 'none';
 
       async function convertToInteractive(key) {
-        const element = document.querySelector('#df-71b7ed09-ae62-49eb-9c71-c340e19d8966');
+        const element = document.querySelector('#df-ef16683b-2312-4c92-8322-c2711610748a');
         const dataTable =
           await google.colab.kernel.invokeFunction('convertToInteractive',
                                                     [key], {});
@@ -28633,8 +28668,8 @@ EXIBIR "[Pseudo-vista] A Célula de Deploy envia esta pasta para docs…"
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>[Pseudo-vista] 30 células traduzidas -&gt; /content/drive/MyDrive/GPTCast_RMF/Pseudo-códigos
-[Pseudo-vista] HTML -&gt; /content/drive/MyDrive/GPTCast_RMF/Pseudo-códigos/Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO_pseudo_vista.html (8.7 MB)
+<pre>[Pseudo-vista] 32 células traduzidas -&gt; /content/drive/MyDrive/GPTCast_RMF/Pseudo-códigos
+[Pseudo-vista] HTML -&gt; /content/drive/MyDrive/GPTCast_RMF/Pseudo-códigos/Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO_pseudo_vista.html (9.0 MB)
 [Pseudo-vista] A Célula de Deploy envia esta pasta para docs/pseudocodigos/ no GitHub.
 </pre>
 </div>
@@ -28981,11 +29016,10 @@ EXECUTAR shutil.rmtree(CLONE_DIR, ignore_errors=VERDADEIRO)
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>[1/5] Clonando https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau.git ...
 [2/5] Copiando artefatos ...
-  [aviso] Manifesto da Célula Extra 2 não encontrado nesta sessão: rode a Célula Extra 2 antes.
 [3/5] Verificando dados sensíveis ...
-[4/5] 164 arquivos copiados, 35 novos ou alterados, 0 removidos.
+[4/5] 141 arquivos copiados, 50 novos ou alterados, 0 removidos.
 [5/5] Enviando para o ramo main ...
-[Deploy] Concluído: https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau/commit/2e1cedd5e4632e4bea932370b3fad1a522613e6c
+[Deploy] Concluído: https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau/commit/8c7ccbd88dde78e2af64fe67fe1adfe9f18f7bbc
 </pre>
 </div>
 </div>
@@ -29234,22 +29268,21 @@ FIM SE
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>[1/4] Notebook (.ipynb) copiado -&gt; Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb
-[1/4] Relatório visual HTML gerado -&gt; Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO_completo.html
-[2/4] Tabelas CSV coletadas: 63
-[3/4] Imagens PNG coletadas: 53
-[4/4] Manifesto e dependências do ambiente salvos.
-
-[CONCLUÍDO] Pacote integral salvo permanentemente no Google Drive:
- -&gt; /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/backups_completos/BACKUP_INTEGRAL_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_190238.zip
+<pre>[1/5] Notebook copiado (salvo no Drive em 18/11/2026 19:02; se for antigo, use Ctrl+S e rode de novo).
+[1/5] Relatório HTML gerado.
+[2/5] 57 tabelas e 28 figuras copiadas (subpastas preservadas, sem sobrescrever nomes iguais).
+[3/5] Código de 32 células, pip freeze e manifesto SHA-256 incluídos.
+[4/5] Índice SHA-256 de 130 arquivos gravado no pacote.
+[5/5] Pacote salvo no Drive: /content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km/backups_completos/BACKUP_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_190223.zip (30.5 MB) | SHA-256 bf92609894b57cff…
+  O notebook e o HTML guardam as saídas como foram exibidas: não publique o pacote sem revisar.
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="5417c156-6bca-4f51-aa83-3a14fb8cd343" tabindex="0">
+<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="a15dc191-27c1-4cc1-ad38-8f2cf1b6e302" tabindex="0">
 <script type="text/javascript">
-var element = document.getElementById('5417c156-6bca-4f51-aa83-3a14fb8cd343');
+var element = document.getElementById('a15dc191-27c1-4cc1-ad38-8f2cf1b6e302');
 
     async function download(id, filename, size) {
       if (!google.colab.kernel.accessAllowed) {
@@ -29296,10 +29329,10 @@ var element = document.getElementById('5417c156-6bca-4f51-aa83-3a14fb8cd343');
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="d1d5cbc7-67fa-404b-be71-aebc24cff96a" tabindex="0">
+<div class="jp-RenderedJavaScript jp-OutputArea-output" data-mime-type="application/javascript" id="b5c6e201-ddeb-44c1-832c-03f7d9c1ba13" tabindex="0">
 <script type="text/javascript">
-var element = document.getElementById('d1d5cbc7-67fa-404b-be71-aebc24cff96a');
-download("download_1d7cdb35-1341-4f73-9011-723e32839a00", "BACKUP_INTEGRAL_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_190238.zip", 70850220)
+var element = document.getElementById('b5c6e201-ddeb-44c1-832c-03f7d9c1ba13');
+download("download_dc261c76-cd30-4d37-821a-c07a0e07080d", "BACKUP_FPluvIA_G4_RTX6000_Blackwell_95GB_20261118_190223.zip", 31983584)
 </script>
 </div>
 </div>

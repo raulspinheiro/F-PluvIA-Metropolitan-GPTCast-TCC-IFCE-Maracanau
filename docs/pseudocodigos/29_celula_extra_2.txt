@@ -184,6 +184,27 @@ SE reg E os.path.isfile(reg) ENTÃO
         (nada a fazer)
     FIM TENTAR
 FIM SE
+// Caminhos absolutos (ex.: os do registro de treino) viram relativos às pastas do projeto: o manifesto vai para um
+// repositório público e não pode listar o Drive pessoal.
+_RAIZES ← sorted([(str(Path(v)), k) PARA CADA (k, v) EM PASTAS.items() SE v], key=FUNÇÃO(t) ↦ −len(t[0]))
+FUNÇÃO _relativo(x)
+    SE isinstance(x, dict) ENTÃO
+        RETORNAR [k: _relativo(v) PARA CADA (k, v) EM x.items()]
+    FIM SE
+    SE isinstance(x, (list, tuple)) ENTÃO
+        RETORNAR [_relativo(v) PARA CADA v EM x]
+    FIM SE
+    SE isinstance(x, str) E ("/content/" EM x OU "/MyDrive" EM x) ENTÃO
+        PARA CADA (raiz, rotulo) EM _RAIZES FAÇA
+            SE x.startswith(raiz) ENTÃO
+                RETORNAR f'{rotulo}/{os.path.relpath(x, raiz)}'
+            FIM SE
+        FIM PARA
+        RETORNAR os.path.basename(x.rstrip("/"))
+    FIM SE
+    RETORNAR x
+FIM FUNÇÃO
+execucao ← _relativo(execucao)
 manifesto ← {"tipo": "Manifesto de integridade e proveniência (SHA-256)", "o_que_comprova": "Que os arquivos listados não mudaram desde a emissão: ba…
 // ------------------------------------------------------------------ 5. arquivos de saída
 gpu_slug ← re.sub("[^A-Za-z0-9]+", "_", gpu.get("modelo", "CPU")).strip("_")

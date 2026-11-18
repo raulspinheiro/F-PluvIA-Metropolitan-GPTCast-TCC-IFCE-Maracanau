@@ -1,6 +1,6 @@
 Pseudo-códigos do notebook F-PluvIA Metropolitan
-Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 21:51)
-Gerado em: 18/11/2026 21:56 | Ambiente: G4_RTX6000_Blackwell_95GB
+Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 18/11/2026 22:31)
+Gerado em: 18/11/2026 22:31 | Ambiente: G4_RTX6000_Blackwell_95GB
 Tradução automática por regras (árvore sintática do Python): é fiel à estrutura do código, não um resumo.
 
 // Convenções: ← atribuição | FUNÇÃO/CLASSE/SE/PARA CADA/ENQUANTO/TENTAR … FIM | EXIBIR = mostra na saída
