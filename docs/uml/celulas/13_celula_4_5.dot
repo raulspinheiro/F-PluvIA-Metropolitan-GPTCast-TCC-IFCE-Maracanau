@@ -1,0 +1,13 @@
+digraph "4_5" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 4.5</B> — 340 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 4.5</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ C</TD></TR><TR><TD ALIGN="LEFT">+ CACHE</TD></TR><TR><TD ALIGN="LEFT">+ CELL4_5_AMOSTRAGEM</TD></TR><TR><TD ALIGN="LEFT">+ CONFERE</TD></TR><TR><TD ALIGN="LEFT">+ CONFIGS</TD></TR><TR><TD ALIGN="LEFT">+ DEVICE</TD></TR><TR><TD ALIGN="LEFT">+ ESCOLHA</TD></TR><TR><TD ALIGN="LEFT">+ F</TD></TR><TR><TD ALIGN="LEFT">+ MODELOS</TD></TR><TR><TD ALIGN="LEFT">+ N_BOOT</TD></TR><TR><TD ALIGN="LEFT">+ N_JANELAS</TD></TR><TR><TD ALIGN="LEFT">+ N_MEMBROS</TD></TR><TR><TD ALIGN="LEFT">+ P</TD></TR><TR><TD ALIGN="LEFT">+ PADRAO</TD></TR><TR><TD ALIGN="LEFT"><I>+ 62 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _rain(dbz)</TD></TR><TR><TD ALIGN="LEFT">- _digest(model)</TD></TR><TR><TD ALIGN="LEFT">- _lote(model, n)</TD></TR><TR><TD ALIGN="LEFT">+ gerar(model, ctx_dbz, temperatura, top_k,…)</TD></TR><TR><TD ALIGN="LEFT">- _silencio()</TD></TR><TR><TD ALIGN="LEFT">- _cont(o, p, thr)</TD></TR><TR><TD ALIGN="LEFT">- _csi(tp, fp, fn)</TD></TR><TR><TD ALIGN="LEFT">- _resumo(o, p)</TD></TR><TR><TD ALIGN="LEFT">- _por_janela(p)</TD></TR><TR><TD ALIGN="LEFT">- _boot_csi(p)</TD></TR><TR><TD ALIGN="LEFT">- _med(dfx, nome, col)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>contextlib<BR/>einops<BR/>glob<BR/>gptcast<BR/>hashlib<BR/>io<BR/>json<BR/>math<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>textwrap<BR/>time<BR/><I>+ 2 mais</I>>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>CONTEXT_STEPS<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>fss_over_set<BR/>md_rmf<BR/>sal_over_set>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>janela_*.npz>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

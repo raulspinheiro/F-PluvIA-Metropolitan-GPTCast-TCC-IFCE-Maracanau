@@ -1,0 +1,404 @@
+// ===== Célula Full UMLs — pseudo-código =====
+// Célula Full UMLs: Diagramas UML Gerados do Código de Cada Célula — classes, operações, variáveis produzidas,
+// bibliotecas usadas e o fluxo de dados entre as células, lidos do notebook salvo (CTRL+S :necessita salvar o ambiente da execusão dessa célula).
+IMPORTAR ast
+IMPORTAR builtins
+IMPORTAR html
+IMPORTAR io
+IMPORTAR json
+IMPORTAR os
+IMPORTAR re
+IMPORTAR shutil
+IMPORTAR subprocess
+IMPORTAR tokenize
+IMPORTAR unicodedata
+IMPORTAR Counter, defaultdict DE collections
+IMPORTAR Path DE pathlib
+// ------------------------------------------------------------------- 1. configuração
+NOTEBOOK_NAME ← "Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTI…"
+NOTEBOOK_PATH ← globals().get("DETECTED_NB_PATH")   // se None, procura NOTEBOOK_NAME no Drive
+SERIES_CACHE_DIR ← globals().get("SERIES_CACHE_DIR", "/content/drive/MyDrive/GPTCast_RMF/series_2019_2025_2km")
+UML_DIR ← Path(SERIES_CACHE_DIR) / "diagramas_uml"   // o Deploy publica esta pasta em docs/uml/
+FORMATOS ← ("png", "svg")
+MAX_ITENS ← 14   // itens por compartimento antes de resumir em "+ N"
+FRACAO_CONFIG ← 0.5   // variável lida por >= 50% das células = configuração global
+FONTE ← "Helvetica"
+SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    PARA CADA cand EM (Path("/content/drive/MyDrive/Colab Notebooks") / NOTEBOOK_NAME, Path("/content/drive/MyDrive") / NOTEBOOK_NAME) FAÇA
+        SE cand.is_file() ENTÃO
+            NOTEBOOK_PATH ← str(cand)
+            INTERROMPER LAÇO
+        FIM SE
+    FIM PARA
+FIM SE
+SE NÃO NOTEBOOK_PATH E os.path.isfile(NOTEBOOK_PATH) ENTÃO
+    LANÇAR ERRO FileNotFoundError("Notebook salvo não encontrado: salve com Ctrl+S ou defina DE…")
+FIM SE
+// ------------------------------------------------------------------- 2. Graphviz
+SE NÃO shutil.which("dot") ENTÃO
+    EXIBIR "Instalando o Graphviz ..."
+    EXECUTAR subprocess.run("apt-get -qq install -y graphviz > /dev/null 2>&1", shell=VERDADEIRO)
+FIM SE
+TEM_DOT ← bool(shutil.which("dot"))
+SE NÃO TEM_DOT ENTÃO
+    EXIBIR "  [aviso] Graphviz indisponível: os diagramas serão gravados…"
+FIM SE
+SE UML_DIR.is_dir() ENTÃO   // cada execução regrava o conjunto inteiro
+    EXECUTAR shutil.rmtree(UML_DIR)
+FIM SE
+EXECUTAR UML_DIR / "celulas".mkdir(parents=VERDADEIRO, exist_ok=VERDADEIRO)
+// ------------------------------------------------------------------- 3. leitura das células
+_ROTULO ← re.compile("^#\s*(?:@title\s*#\s*)?C[ée]lula\s+([^:\n]+)", re.M)
+fontes ← ["".join(c.get("source", [])) PARA CADA c EM json.loads(Path(NOTEBOOK_PATH).read_text(encoding="utf-8"))["cells"] SE c.get("cell_type") = "c…
+celulas ← {}   // rótulo -> (posição, código); vale a última versão
+PARA CADA (pos, src) EM enumerate(fontes) FAÇA
+    m ← _ROTULO.search(src OU "")
+    SE m ENTÃO
+        celulas[m.group(1).strip()] ← (pos, src)
+    FIM SE
+FIM PARA
+ordem ← sorted(celulas, key=FUNÇÃO(r) ↦ celulas[r][0])
+FUNÇÃO slug(rotulo)
+    RETORNAR re.sub("[^0-9A-Za-z]+", "_", unicodedata.normalize("NFKD", rotulo.lower()).encode("ascii", "ignore").decode()).strip("_")[:40].rstrip("_…
+FIM FUNÇÃO
+FUNÇÃO sem_magicas(src)
+    // Converte comandos do Colab (!pip, %cd, x = !ls) em Python puro, como o próprio IPython faz.
+    TENTAR
+        IMPORTAR TransformerManager DE IPython.core.inputtransformer2
+        RETORNAR TransformerManager().transform_cell(src)
+    SE OCORRER ERRO Exception
+        (nada a fazer)
+    FIM TENTAR
+    (linhas, aceitas) ← ([], [])   // alternativa: comando só fora de parênteses e de textos
+    FUNÇÃO dentro_de_expressao(texto)
+        prof ← 0
+        TENTAR
+            PARA CADA tok EM tokenize.generate_tokens(io.StringIO(texto).readline) FAÇA
+                SE tok.type = tokenize.OP E tok.string EM "([{" ENTÃO
+                    prof ← prof + 1
+                SENÃO SE tok.type = tokenize.OP E tok.string EM ")]}" ENTÃO
+                    prof ← prof − 1
+                FIM SE
+            FIM PARA
+        SE OCORRER ERRO tokenize.TokenError (chamado e)
+            RETORNAR "string" EM str(e) OU prof > 0
+        SE OCORRER ERRO (IndentationError, SyntaxError)
+            (nada a fazer)
+        FIM TENTAR
+        RETORNAR prof > 0
+    FIM FUNÇÃO
+    PARA CADA ln EM src.split(" ") FAÇA
+        t ← ln.lstrip()
+        SE (t.startswith(("!", "%")) OU re.match("^[\w\s,]+=\s*!", t)) E NÃO dentro_de_expressao(" ".join(aceitas) + " ") ENTÃO
+            EXECUTAR linhas.append(ln[:len(ln) − len(t)] + "pass  # " + t)
+        SENÃO
+            EXECUTAR linhas.append(ln)
+            EXECUTAR aceitas.append(ln)
+        FIM SE
+    FIM PARA
+    RETORNAR " ".join(linhas)
+FIM FUNÇÃO
+// ------------------------------------------------------------------- 4. análise de cada célula (ast)
+BUILTINS ← set(dir(builtins)) | {"get_ipython", "display", "__file__", "__name__"}
+_ARQ_NOME ← re.compile("^[\w\-.{}%*]{3,80}\.(csv|png|pdf|json|npz|npy|pt|pth|ckpt|md…", re.I)
+FUNÇÃO assinatura(fn)
+    a ← [x.arg PARA CADA x EM fn.args.posonlyargs + fn.args.args SE x.arg NÃO EM ("self", "cls")]
+    SE fn.args.vararg ENTÃO
+        EXECUTAR a.append("*" + fn.args.vararg.arg)
+    FIM SE
+    a ← a + [x.arg PARA CADA x EM fn.args.kwonlyargs]
+    SE fn.args.kwarg ENTÃO
+        EXECUTAR a.append("**" + fn.args.kwarg.arg)
+    FIM SE
+    txt ← ", ".join(a)
+    RETORNAR f"{fn.name}({(txt if len(txt) <= 38 else txt[:35] + '…')})"
+FIM FUNÇÃO
+FUNÇÃO nome_base(b)
+    TENTAR
+        RETORNAR ast.unparse(b)
+    SE OCORRER ERRO Exception
+        RETORNAR "?"
+    FIM TENTAR
+FIM FUNÇÃO
+FUNÇÃO alvos(no)
+    SE isinstance(no, ast.Name) ENTÃO
+        EXECUTAR (yield no.id)
+    SENÃO SE isinstance(no, (ast.Tuple, ast.List)) ENTÃO
+        PARA CADA e EM no.elts FAÇA
+            EXECUTAR (yield from alvos(e))
+        FIM PARA
+    SENÃO SE isinstance(no, ast.Starred) ENTÃO
+        EXECUTAR (yield from alvos(no.value))
+    FIM SE
+FIM FUNÇÃO
+FUNÇÃO releitura(valor)
+    // Devolve 'X' se valor for globals().get('X', ...) ou globals()['X'], senão None.
+    SE isinstance(valor, ast.Call) E isinstance(valor.func, ast.Attribute) E valor.func.attr = "get" E isinstance(valor.func.value, ast.Call) E getat…
+        RETORNAR valor.args[0].value
+    FIM SE
+    RETORNAR NULO
+FIM FUNÇÃO
+FUNÇÃO analisar(src)
+    info ← {"linhas": src.count(" ") + 1, "imports": set(), "classes": [], "funcoes": [], "produz": set(), "le": set(), "arquivos": set(), "chamadas"…
+    TENTAR
+        arv ← ast.parse(sem_magicas(src))
+    SE OCORRER ERRO SyntaxError (chamado e)
+        info["erro"] ← f'linha {e.lineno}: {e.msg}'
+        RETORNAR info
+    FIM TENTAR
+    locais ← set()
+    PARA CADA no EM ast.walk(arv) FAÇA
+        SE isinstance(no, ast.Import) ENTÃO
+            PARA CADA a EM no.names FAÇA
+                EXECUTAR info["imports"].add(a.name.split(".")[0])
+                EXECUTAR locais.add(a.asname OU a.name.split(".")[0])
+            FIM PARA
+        SENÃO SE isinstance(no, ast.ImportFrom) E no.module E NÃO no.level ENTÃO
+            EXECUTAR info["imports"].add(no.module.split(".")[0])
+            EXECUTAR locais.update([a.asname OU a.name PARA CADA a EM no.names])
+        SENÃO SE isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)) ENTÃO
+            args ← no.args
+            EXECUTAR locais.update([x.arg PARA CADA x EM args.posonlyargs + args.args + args.kwonlyargs])
+            EXECUTAR locais.update([x.arg PARA CADA x EM (args.vararg, args.kwarg) SE x])
+        SENÃO SE isinstance(no, ast.comprehension) ENTÃO
+            EXECUTAR locais.update(alvos(no.target))
+        SENÃO SE isinstance(no, ast.ExceptHandler) E no.name ENTÃO
+            EXECUTAR locais.add(no.name)
+        SENÃO SE isinstance(no, ast.Constant) E isinstance(no.value, str) E _ARQ_NOME.match(os.path.basename(no.value.strip())) ENTÃO
+            EXECUTAR info["arquivos"].add(os.path.basename(no.value.strip()))
+        SENÃO SE isinstance(no, ast.Call) E isinstance(no.func, ast.Attribute) E no.func.attr = "get" E isinstance(no.func.value, ast.Call) E getattr…
+            EXECUTAR info["le"].add(no.args[0].value)   // globals().get('NOME', ...)
+        FIM SE
+    FIM PARA
+    // nomes produzidos no nível da célula (fora de funções e classes)
+    FUNÇÃO nivel_superior(corpo)
+        PARA CADA st EM corpo FAÇA
+            SE isinstance(st, (ast.FunctionDef, ast.AsyncFunctionDef)) ENTÃO
+                EXECUTAR info["funcoes"].append(st)
+                EXECUTAR info["produz"].add(st.name)
+            SENÃO SE isinstance(st, ast.ClassDef) ENTÃO
+                EXECUTAR info["classes"].append(st)
+                EXECUTAR info["produz"].add(st.name)
+            SENÃO
+                PARA CADA no EM ast.walk(st) FAÇA
+                    SE isinstance(no, (ast.Assign, ast.AnnAssign, ast.AugAssign)) ENTÃO
+                        PARA CADA t EM (no.targets SE isinstance(no, ast.Assign) SENÃO [no.target]) FAÇA
+                            nomes ← set(alvos(t))
+                            SE releitura(no.value) EM nomes ENTÃO   // X = globals().get('X', ...) só relê X
+                                EXECUTAR nomes.discard(releitura(no.value))
+                            FIM SE
+                            EXECUTAR info["produz"].update(nomes)
+                        FIM PARA
+                    SENÃO SE isinstance(no, (ast.For, ast.AsyncFor, ast.withitem)) ENTÃO
+                        alvo ← (no.target SE isinstance(no, (ast.For, ast.AsyncFor)) SENÃO no.optional_vars)
+                        SE alvo NÃO É NULO ENTÃO
+                            EXECUTAR locais.update(alvos(alvo))   // variáveis de laço não contam como produto
+                        FIM SE
+                    SENÃO SE isinstance(no, ast.Global) ENTÃO
+                        EXECUTAR info["produz"].update(no.names)
+                    SENÃO SE isinstance(no, ast.Subscript) E isinstance(no.ctx, ast.Store) E isinstance(no.value, ast.Call) E getattr(no.value.func, …
+                        EXECUTAR info["produz"].add(str(no.slice.value))   // globals()['NOME'] = ...
+                    FIM SE
+                FIM PARA
+            FIM SE
+        FIM PARA
+    FIM FUNÇÃO
+    EXECUTAR nivel_superior(arv.body)
+    PARA CADA fn EM info["funcoes"] FAÇA   // funções que declaram global também produzem
+        PARA CADA no EM ast.walk(fn) FAÇA
+            SE isinstance(no, ast.Global) ENTÃO
+                EXECUTAR info["produz"].update(no.names)
+            FIM SE
+        FIM PARA
+    FIM PARA
+    // nomes lidos que vêm de fora da célula
+    atribuidos ← set(info["produz"]) | locais
+    PARA CADA no EM ast.walk(arv) FAÇA
+        SE isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) ENTÃO
+            PARA CADA sub EM ast.walk(no) FAÇA
+                SE isinstance(sub, ast.Name) E isinstance(sub.ctx, ast.Store) ENTÃO
+                    EXECUTAR atribuidos.add(sub.id)
+                FIM SE
+            FIM PARA
+        FIM SE
+    FIM PARA
+    PARA CADA no EM ast.walk(arv) FAÇA
+        SE isinstance(no, ast.Name) E isinstance(no.ctx, ast.Load) E no.id NÃO EM atribuidos E no.id NÃO EM BUILTINS ENTÃO
+            EXECUTAR info["le"].add(no.id)
+        FIM SE
+    FIM PARA
+    info["le"] ← info["le"] − BUILTINS
+    // chamadas entre funções da própria célula e para nomes externos
+    nomes_fn ← [f.name PARA CADA f EM info["funcoes"]]
+    PARA CADA fn EM info["funcoes"] FAÇA
+        PARA CADA no EM ast.walk(fn) FAÇA
+            SE isinstance(no, ast.Call) E isinstance(no.func, ast.Name) E no.func.id ≠ fn.name ENTÃO
+                EXECUTAR info["chamadas"][fn.name].add(no.func.id)
+            FIM SE
+        FIM PARA
+    FIM PARA
+    info["nomes_fn"] ← nomes_fn
+    RETORNAR info
+FIM FUNÇÃO
+analises ← [r: analisar(celulas[r][1]) PARA CADA r EM ordem]
+// ------------------------------------------------------------------- 5. fluxo de dados entre células
+leitores ← Counter()
+PARA CADA r EM ordem FAÇA
+    EXECUTAR leitores.update(analises[r]["le"])
+FIM PARA
+CONFIG ← [n PARA CADA (n, k) EM leitores.items() SE k ≥ FRACAO_CONFIG × len(ordem)]
+arestas ← defaultdict(set)   // (produtora, consumidora) -> nomes
+(ultima_produtora, primeira_produtora) ← ({}, {})
+PARA CADA r EM ordem FAÇA
+    a ← analises[r]
+    PARA CADA n EM a["le"] FAÇA
+        SE n EM ultima_produtora E ultima_produtora[n] ≠ r ENTÃO
+            EXECUTAR arestas[(ultima_produtora[n], r)].add(n)
+        FIM SE
+    FIM PARA
+    PARA CADA n EM a["produz"] FAÇA
+        ultima_produtora[n] ← r
+        EXECUTAR primeira_produtora.setdefault(n, r)
+    FIM PARA
+FIM PARA
+config_origem ← [n: primeira_produtora[n] PARA CADA n EM sorted(CONFIG) SE n EM primeira_produtora]
+// ------------------------------------------------------------------- 6. desenho (DOT -> PNG/SVG)
+FUNÇÃO esc(s)
+    RETORNAR html.escape(str(s), quote=VERDADEIRO)
+FIM FUNÇÃO
+FUNÇÃO compartimento(itens, vazio)
+    itens ← list(itens)
+    SE NÃO itens ENTÃO
+        RETORNAR f'<TR><TD ALIGN="LEFT"><FONT COLOR="#888888">{vazio}</FONT></TD>…
+    FIM SE
+    extra ← len(itens) − MAX_ITENS
+    linhas ← "".join([f'<TR><TD ALIGN="LEFT">{esc(i)}</TD></TR>' PARA CADA i EM itens[:MAX_ITENS]])
+    SE extra > 0 ENTÃO
+        linhas ← linhas + f'<TR><TD ALIGN="LEFT"><I>+ {extra} mais</I></TD></TR>'
+    FIM SE
+    RETORNAR linhas
+FIM FUNÇÃO
+FUNÇÃO caixa_uml(estereotipo, titulo, atributos, operacoes, cor)
+    RETORNAR f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING=…
+FIM FUNÇÃO
+FUNÇÃO renderizar(dot_txt, base)
+    EXECUTAR base.with_suffix(".dot").write_text(dot_txt, encoding="utf-8")
+    feitos ← [base.with_suffix(".dot")]
+    SE TEM_DOT ENTÃO
+        PARA CADA fmt EM FORMATOS FAÇA
+            out ← base.with_suffix("." + fmt)
+            r ← subprocess.run(["dot", f'-T{fmt}', ("-Gdpi=150" SE fmt = "png" SENÃO "-Gdpi=72"), "-o", str(out), str(base.with_suffix(".dot"))], cap…
+            SE r.returncode = 0 ENTÃO
+                EXECUTAR feitos.append(out)
+            SENÃO
+                EXIBIR f'  [aviso] {base.name}.{fmt}: {r.stderr.strip()[:150]}'
+            FIM SE
+        FIM PARA
+    FIM SE
+    RETORNAR feitos
+FIM FUNÇÃO
+CABECALHO ← f'  graph [fontname="{FONTE}", rankdir=LR, nodesep=0.35, ranksep…
+FUNÇÃO diagrama_celula(rotulo, a)
+    n ← slug(rotulo)
+    publicos ← sorted([x PARA CADA x EM a["produz"] SE NÃO x.startswith("_") E x NÃO EM a["nomes_fn"] E x NÃO EM [c.name PARA CADA c EM a["classes"]]…
+    ops ← [("- " SE f.name.startswith("_") SENÃO "+ ") + assinatura(f) PARA CADA f EM a["funcoes"]]
+    t ← [f'digraph "{n}" {{\n', CABECALHO, f"  label=<<B>Célula {esc(rotulo)}</B> — {a['linhas']} linhas>;\…, f"  celula [label={caixa_uml('célula', …
+    PARA CADA c EM a["classes"] FAÇA
+        (attrs, metodos) ← (set(), [])
+        PARA CADA st EM c.body FAÇA
+            SE isinstance(st, (ast.Assign, ast.AnnAssign)) ENTÃO
+                PARA CADA alvo EM (st.targets SE isinstance(st, ast.Assign) SENÃO [st.target]) FAÇA
+                    EXECUTAR attrs.update(alvos(alvo))
+                FIM PARA
+            SENÃO SE isinstance(st, (ast.FunctionDef, ast.AsyncFunctionDef)) ENTÃO
+                EXECUTAR metodos.append(("- " SE st.name.startswith("_") E NÃO st.name.startswith("__") SENÃO "+ ") + assinatura(st))
+                PARA CADA no EM ast.walk(st) FAÇA
+                    SE isinstance(no, ast.Attribute) E isinstance(no.ctx, ast.Store) E getattr(no.value, "id", "") = "self" ENTÃO
+                        EXECUTAR attrs.add(no.attr)
+                    FIM SE
+                FIM PARA
+            FIM SE
+        FIM PARA
+        cid ← "cls_" + c.name
+        EXECUTAR t.append(f"  {cid} [label={caixa_uml('classe', c.name, sorted((('- ' if x…)
+        EXECUTAR t.append(f'  celula -> {cid} [arrowtail=diamond, dir=back, label="define"…)
+        PARA CADA b EM c.bases FAÇA
+            bn ← nome_base(b)
+            bid ← "base_" + re.sub("\W", "_", bn)
+            SE bn NÃO EM [x.name PARA CADA x EM a["classes"]] ENTÃO
+                EXECUTAR t.append(f'  {bid} [shape=box, style="rounded,dashed", fontsize=9, label=…)
+            SENÃO
+                bid ← "cls_" + bn
+            FIM SE
+            EXECUTAR t.append(f'  {cid} -> {bid} [arrowhead=empty, label="herda"];\n')
+        FIM PARA
+    FIM PARA
+    libs ← sorted(a["imports"])
+    SE libs ENTÃO
+        rotulos_libs ← "<BR/>".join([esc(x) PARA CADA x EM libs[:MAX_ITENS]]) + (f'<BR/><I>+ {len(libs) - MAX_ITENS} mais</I>' SE len(libs) > MAX_ITE…
+        EXECUTAR t.append(f'  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize…)
+        EXECUTAR t.append("  celula -> libs [style=dashed, arrowhead=open, label="«impo…")
+    FIM SE
+    externos ← sorted([x PARA CADA x EM a["le"] SE NÃO x.startswith("_")])
+    SE externos ENTÃO
+        rot ← "<BR/>".join([esc(x) PARA CADA x EM externos[:MAX_ITENS]]) + (f'<BR/><I>+ {len(externos) - MAX_ITENS} mais</I>' SE len(externos) > MAX_…
+        EXECUTAR t.append(f'  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fon…)
+        EXECUTAR t.append("  entradas -> celula [style=dashed, arrowhead=open, label="«…")
+    FIM SE
+    arqs ← sorted(a["arquivos"])
+    SE arqs ENTÃO
+        rot ← "<BR/>".join([esc(x) PARA CADA x EM arqs[:8]]) + (f'<BR/><I>+ {len(arqs) - 8} mais</I>' SE len(arqs) > 8 SENÃO "")
+        EXECUTAR t.append(f'  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", f…)
+        EXECUTAR t.append("  celula -> arquivos [style=dotted, arrowhead=open, label="l…")
+    FIM SE
+    EXECUTAR t.append("} ")
+    RETORNAR "".join(t)
+FIM FUNÇÃO
+FUNÇÃO diagrama_fluxo()
+    t ← ["digraph pipeline { ", CABECALHO.replace("rankdir=LR", "rankdir=TB"), "  label=<<B>F-PluvIA Metropolitan — fluxo de dados entre as …"]
+    PARA CADA r EM ordem FAÇA
+        a ← analises[r]
+        resumo ← f"{a['linhas']} linhas · {len(a['classes'])} classes · {len(a['f…
+        EXECUTAR t.append(f'''  "{slug(r)}" [shape=component, style=filled, fillcolor="{('…)
+    FIM PARA
+    PARA CADA ((p, c), nomes) EM sorted(arestas.items(), key=FUNÇÃO(kv) ↦ (celulas[kv[0][0]][0], celulas[kv[0][1]][0])) FAÇA
+        nomes ← sorted(nomes − CONFIG)
+        SE NÃO nomes ENTÃO
+            PASSAR À PRÓXIMA ITERAÇÃO
+        FIM SE
+        rot ← ", ".join(nomes[:2]) + (f' +{len(nomes) - 2}' SE len(nomes) > 2 SENÃO "")
+        EXECUTAR t.append(f'  "{slug(p)}" -> "{slug(c)}" [label="{esc(rot)}"];\n')
+    FIM PARA
+    SE config_origem ENTÃO
+        cfg ← "<BR/>".join([esc(f'{n} (Célula {o})') PARA CADA (n, o) EM list(config_origem.items())[:MAX_ITENS]])
+        EXECUTAR t.append(f'  config [shape=note, style=filled, fillcolor="#FCE4EC", fonts…)
+    FIM SE
+    EXECUTAR t.append("} ")
+    RETORNAR "".join(t)
+FIM FUNÇÃO
+// ------------------------------------------------------------------- 7. geração
+EXIBIR f'Notebook: {Path(NOTEBOOK_PATH).name} — {len(fontes)} células d…
+(gerados, falhas, linhas_indice) ← ([], [], [])
+gerados ← gerados + renderizar(diagrama_fluxo(), UML_DIR / "00_fluxo_entre_celulas")
+PARA CADA (i, r) EM enumerate(ordem, 1) FAÇA
+    a ← analises[r]
+    SE a["erro"] ENTÃO
+        EXECUTAR falhas.append((r, a["erro"]))
+        PASSAR À PRÓXIMA ITERAÇÃO
+    FIM SE
+    base ← UML_DIR / "celulas" / f'{i:02d}_celula_{slug(r)}'
+    gerados ← gerados + renderizar(diagrama_celula(r, a), base)
+    EXECUTAR linhas_indice.append(f"| {i:02d} | Célula {r} | {a['linhas']} | {len(a['classes'])} |…)
+FIM PARA
+indice ← ["# Diagramas UML do F-PluvIA Metropolitan", "", "Gerados automaticamente pela **Célula Full UMLs** a partir d…", "", "## Fluxo de dados ent…
+SE falhas ENTÃO
+    indice ← indice + ["## Células não analisadas", ""] + [f'- Célula {r}: {e}' PARA CADA (r, e) EM falhas] + [""]
+FIM SE
+EXECUTAR UML_DIR / "README.md".write_text(" ".join(indice), encoding="utf-8")
+EXIBIR f'\nDiagramas: {len(ordem) - len(falhas)} células + fluxo entre …
+EXIBIR f'Arquivos gravados: {len(gerados) + 1} em {UML_DIR}'
+EXIBIR f"Variáveis de configuração (nota à parte): {', '.join(sorted(CO…
+PARA CADA (r, e) EM falhas FAÇA
+    EXIBIR f'  [aviso] Célula {r} não analisada ({e})'
+FIM PARA
+globals()["UML_DIR"] ← str(UML_DIR)

@@ -32,6 +32,7 @@ PASTAS = {
     'checkpoints': CHECKPOINTS_ENV_DIR,
     'series_2km': SERIES_CACHE_DIR,
     'comparativo_hardware': os.path.join(SERIES_CACHE_DIR, 'comparativo_hardware_G4_vs_H100'),   # Célula 13
+    'diagramas_uml': os.path.join(SERIES_CACHE_DIR, 'diagramas_uml'),                          # Célula Full UMLs
 }
 NOTEBOOK_PATH = globals().get('DETECTED_NB_PATH')        # opcional: .ipynb salvo no Drive
 NOTEBOOK_NAME = 'Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb'
@@ -40,7 +41,7 @@ if not (NOTEBOOK_PATH and os.path.isfile(NOTEBOOK_PATH)):          # procura o n
     if _c.is_file():
       NOTEBOOK_PATH = str(_c)
       break
-EXTENSOES = {'.csv', '.png', '.pdf', '.json', '.npz', '.ckpt', '.pt', '.pth', '.ipynb', '.html'}
+EXTENSOES = {'.csv', '.png', '.svg', '.pdf', '.json', '.npz', '.ckpt', '.pt', '.pth', '.ipynb', '.html'}
 PROFUNDIDADE_MAX = {'series_2km': 0}                      # na pasta das séries, só os arquivos do topo (.npz mensais)
 IGNORAR = ('provenance', '.ipynb_checkpoints', '.Trash', 'tmp_gpm_raw', '__pycache__', 'inmet')
 IGNORAR_ARQUIVOS = ('*6_orgaos*', '*6orgaos*', '*interinstitucional*', 'inmet_*', '*pluviometros_inmet*')   # antiga Célula 13.1 (órgãos / INMET), removida
@@ -55,6 +56,7 @@ META = {
     'curso': 'Bacharelado em Ciência da Computação', 'semestre': '2026.2',
     'autor': 'Raul Santiago Pinheiro', 'orientador': 'Amauri Holanda de Souza Júnior',
     'orientador_lattes': 'http://lattes.cnpq.br/2629504708221802',
+    'orientador_orcid': 'https://orcid.org/0000-0002-2912-0781',
     'repositorio': 'https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau',
 }
 

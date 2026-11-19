@@ -1,0 +1,13 @@
+digraph "full_umls" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula Full UMLs</B> — 397 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula Full UMLs</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ BUILTINS</TD></TR><TR><TD ALIGN="LEFT">+ CABECALHO</TD></TR><TR><TD ALIGN="LEFT">+ CONFIG</TD></TR><TR><TD ALIGN="LEFT">+ FONTE</TD></TR><TR><TD ALIGN="LEFT">+ FORMATOS</TD></TR><TR><TD ALIGN="LEFT">+ FRACAO_CONFIG</TD></TR><TR><TD ALIGN="LEFT">+ MAX_ITENS</TD></TR><TR><TD ALIGN="LEFT">+ NOTEBOOK_NAME</TD></TR><TR><TD ALIGN="LEFT">+ NOTEBOOK_PATH</TD></TR><TR><TD ALIGN="LEFT">+ TEM_DOT</TD></TR><TR><TD ALIGN="LEFT">+ UML_DIR</TD></TR><TR><TD ALIGN="LEFT">+ a</TD></TR><TR><TD ALIGN="LEFT">+ analises</TD></TR><TR><TD ALIGN="LEFT">+ arestas</TD></TR><TR><TD ALIGN="LEFT"><I>+ 13 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ slug(rotulo)</TD></TR><TR><TD ALIGN="LEFT">+ sem_magicas(src)</TD></TR><TR><TD ALIGN="LEFT">+ assinatura(fn)</TD></TR><TR><TD ALIGN="LEFT">+ nome_base(b)</TD></TR><TR><TD ALIGN="LEFT">+ alvos(no)</TD></TR><TR><TD ALIGN="LEFT">+ releitura(valor)</TD></TR><TR><TD ALIGN="LEFT">+ analisar(src)</TD></TR><TR><TD ALIGN="LEFT">+ esc(s)</TD></TR><TR><TD ALIGN="LEFT">+ compartimento(itens, vazio)</TD></TR><TR><TD ALIGN="LEFT">+ caixa_uml(estereotipo, titulo, atributos, ope…)</TD></TR><TR><TD ALIGN="LEFT">+ renderizar(dot_txt, base)</TD></TR><TR><TD ALIGN="LEFT">+ diagrama_celula(rotulo, a)</TD></TR><TR><TD ALIGN="LEFT">+ diagrama_fluxo()</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>IPython<BR/>ast<BR/>builtins<BR/>collections<BR/>html<BR/>io<BR/>json<BR/>os<BR/>pathlib<BR/>re<BR/>shutil<BR/>subprocess<BR/>tokenize<BR/>unicodedata>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>DETECTED_NB_PATH<BR/>SERIES_CACHE_DIR<BR/>dentro_de_expressao<BR/>nivel_superior>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>README.md>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

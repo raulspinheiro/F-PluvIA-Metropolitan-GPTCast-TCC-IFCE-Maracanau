@@ -7,4 +7,4 @@ G4_RTX6000_Blackwell_95GB, -> Validação,2224 (16.0%),4 meses | 2024-02-02T15:3
 G4_RTX6000_Blackwell_95GB, -> Teste,1729 (12.4%),4 meses | 2025-02-02T00:30 a 2025-05-31T20:30
 G4_RTX6000_Blackwell_95GB,ETL medido (download + interpolação a 2 km),7057.91 s,01h:57m:37.91s em 10 de 28 meses
 G4_RTX6000_Blackwell_95GB,Fine-tuning na GPU,1009.83 s,00h:16m:49.83s | 5 épocas | melhor época 0 | val/loss 4.7167
-G4_RTX6000_Blackwell_95GB,Inferência 4 passos (ajustado / zero-shot),1.6692 s / 1.6231 s,média de 5 repetições | 0.4173 / 0.4058 s por passo
+G4_RTX6000_Blackwell_95GB,Inferência 4 passos (ajustado / zero-shot),1.6902 s / 1.6554 s,média de 5 repetições | 0.4225 / 0.4138 s por passo

@@ -1,0 +1,13 @@
+digraph "activates_checkpoint" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula (Activates Checkpoint)</B> — 151 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula (Activates Checkpoint)</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ CSV_LOG_PATH</TD></TR><TR><TD ALIGN="LEFT">+ GPU_LOG_CSV</TD></TR><TR><TD ALIGN="LEFT">+ GPU_LOG_JSON</TD></TR><TR><TD ALIGN="LEFT">+ ckpt_state</TD></TR><TR><TD ALIGN="LEFT">+ cols</TD></TR><TR><TD ALIGN="LEFT">+ df_etl</TD></TR><TR><TD ALIGN="LEFT">+ df_params</TD></TR><TR><TD ALIGN="LEFT">+ df_resumo</TD></TR><TR><TD ALIGN="LEFT">+ dig_ckpt</TD></TR><TR><TD ALIGN="LEFT">+ dig_mem</TD></TR><TR><TD ALIGN="LEFT">+ dig_zs</TD></TR><TR><TD ALIGN="LEFT">+ ep</TD></TR><TR><TD ALIGN="LEFT">+ ft_s</TD></TR><TR><TD ALIGN="LEFT">+ gpu_log</TD></TR><TR><TD ALIGN="LEFT"><I>+ 14 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ fmt_seconds(sec)</TD></TR><TR><TD ALIGN="LEFT">+ fmt_params(n)</TD></TR><TR><TD ALIGN="LEFT">- _transformer_digest(state)</TD></TR><TR><TD ALIGN="LEFT">- _row(nome, status, n, n_mod)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>hashlib<BR/>json<BR/>numpy<BR/>os<BR/>pandas<BR/>torch>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>CHECKPOINTS_DIR<BR/>CHECKPOINTS_ENV_DIR<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>RESULTS_ENV_DIR<BR/>SERIES_CACHE_DIR<BR/>best_ckpt_path<BR/>gpt8<BR/>gpt8_zeroshot<BR/>md_rmf<BR/>timing_gpu_log>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>_2019_2025.csv<BR/>_2019_2025.json<BR/>log_tempos_etl_imerg_2019_2025.csv>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

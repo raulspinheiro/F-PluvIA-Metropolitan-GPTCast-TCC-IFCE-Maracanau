@@ -1,0 +1,13 @@
+digraph "extra_2" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula Extra 2</B> — 278 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula Extra 2</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ BASE_DIR</TD></TR><TR><TD ALIGN="LEFT">+ CACHE_HASH</TD></TR><TR><TD ALIGN="LEFT">+ DEST</TD></TR><TR><TD ALIGN="LEFT">+ DEST_DRIVE</TD></TR><TR><TD ALIGN="LEFT">+ EXTENSOES</TD></TR><TR><TD ALIGN="LEFT">+ IGNORAR</TD></TR><TR><TD ALIGN="LEFT">+ IGNORAR_ARQUIVOS</TD></TR><TR><TD ALIGN="LEFT">+ INCLUIR_CHECKPOINTS</TD></TR><TR><TD ALIGN="LEFT">+ LAST_JSON_CERT</TD></TR><TR><TD ALIGN="LEFT">+ LAST_MD_CERT</TD></TR><TR><TD ALIGN="LEFT">+ LAST_SHA256SUMS</TD></TR><TR><TD ALIGN="LEFT">+ META</TD></TR><TR><TD ALIGN="LEFT">+ NOTEBOOK_NAME</TD></TR><TR><TD ALIGN="LEFT">+ NOTEBOOK_PATH</TD></TR><TR><TD ALIGN="LEFT"><I>+ 36 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ sha256(p)</TD></TR><TR><TD ALIGN="LEFT">- _oculta(s)</TD></TR><TR><TD ALIGN="LEFT">- _cmd(c)</TD></TR><TR><TD ALIGN="LEFT">- _versao(pkg)</TD></TR><TR><TD ALIGN="LEFT">- _relativo(x)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>datetime<BR/>fnmatch<BR/>hashlib<BR/>importlib<BR/>json<BR/>os<BR/>pathlib<BR/>platform<BR/>re<BR/>subprocess<BR/>sys<BR/>time<BR/>torch>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>BASE_DIR<BR/>CHECKPOINTS_ENV_DIR<BR/>DETECTED_NB_PATH<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>RESULTS_ENV_DIR<BR/>SERIES_CACHE_DIR<BR/>gpt8>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>cache_sha256.json>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

@@ -1,0 +1,11 @@
+digraph "12_1" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 12.1</B> — 151 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 12.1</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ ALERT_LEVELS</TD></TR><TR><TD ALIGN="LEFT">+ AMOSTRAGEM_12</TD></TR><TR><TD ALIGN="LEFT">+ DECOD_TXT</TD></TR><TR><TD ALIGN="LEFT">+ LEADS</TD></TR><TR><TD ALIGN="LEFT">+ N_EVAL</TD></TR><TR><TD ALIGN="LEFT">+ NOME_MEDIA</TD></TR><TR><TD ALIGN="LEFT">+ ROTULO</TD></TR><TR><TD ALIGN="LEFT">+ SUF</TD></TR><TR><TD ALIGN="LEFT">+ axes</TD></TR><TR><TD ALIGN="LEFT">+ base</TD></TR><TR><TD ALIGN="LEFT">+ case</TD></TR><TR><TD ALIGN="LEFT">+ cls_csv</TD></TR><TR><TD ALIGN="LEFT">+ cols</TD></TR><TR><TD ALIGN="LEFT">+ df_cls</TD></TR><TR><TD ALIGN="LEFT"><I>+ 24 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ classification_scores(tp, fp, fn, tn)</TD></TR><TR><TD ALIGN="LEFT">- _counts(ob, pb)</TD></TR><TR><TD ALIGN="LEFT">+ municipal_means(rain_4d)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>CELL12_FULL_2025_RESULTS<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>SERIES_CACHE_DIR<BR/>data_str<BR/>forecast8_rain<BR/>forecast8_zeroshot_rain<BR/>gdf_rmf<BR/>ground_truth_rain<BR/>linda_rain<BR/>lk_extrap_rain<BR/>md_rmf<BR/><I>+ 2 mais</I>>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

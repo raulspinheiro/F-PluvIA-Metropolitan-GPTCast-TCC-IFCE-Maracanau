@@ -1,0 +1,11 @@
+digraph "4_4" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 4.4</B> — 263 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 4.4</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ C</TD></TR><TR><TD ALIGN="LEFT">+ CAMINHO_DECODE</TD></TR><TR><TD ALIGN="LEFT">+ CELL4_4_TETO_VQGAN</TD></TR><TR><TD ALIGN="LEFT">+ DEVICE</TD></TR><TR><TD ALIGN="LEFT">+ F</TD></TR><TR><TD ALIGN="LEFT">+ H</TD></TR><TR><TD ALIGN="LEFT">+ LOTE</TD></TR><TR><TD ALIGN="LEFT">+ METODOS</TD></TR><TR><TD ALIGN="LEFT">+ N</TD></TR><TR><TD ALIGN="LEFT">+ N_MAX</TD></TR><TR><TD ALIGN="LEFT">+ S</TD></TR><TR><TD ALIGN="LEFT">+ SAL_STRIDE</TD></TR><TR><TD ALIGN="LEFT">+ STEP_MIN</TD></TR><TR><TD ALIGN="LEFT">+ T</TD></TR><TR><TD ALIGN="LEFT"><I>+ 38 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _metodos(obj)</TD></TR><TR><TD ALIGN="LEFT">- _escolher_decodificador()</TD></TR><TR><TD ALIGN="LEFT">- _rain(dbz)</TD></TR><TR><TD ALIGN="LEFT">+ reconstruir(lote_dbz, empilhado)</TD></TR><TR><TD ALIGN="LEFT">- _linha(o, p, nome, rotulo)</TD></TR><TR><TD ALIGN="LEFT">- _sal(nome, col)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>gptcast<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>textwrap<BR/>time<BR/>torch>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>CELL12_FULL_2025_RESULTS<BR/>CONTEXT_STEPS<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>fss_over_set<BR/>gpt8<BR/>md_rmf<BR/>sal_over_set>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

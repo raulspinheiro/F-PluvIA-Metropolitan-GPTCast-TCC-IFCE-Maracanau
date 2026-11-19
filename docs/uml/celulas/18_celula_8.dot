@@ -1,0 +1,11 @@
+digraph "8" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 8</B> — 159 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 8</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ RES_GRID_KM</TD></TR><TR><TD ALIGN="LEFT">+ SAL_MIN_RAIN</TD></TR><TR><TD ALIGN="LEFT">+ SAL_OBJ_FRACTION</TD></TR><TR><TD ALIGN="LEFT">+ axes</TD></TR><TR><TD ALIGN="LEFT">+ cb</TD></TR><TR><TD ALIGN="LEFT">+ data_str</TD></TR><TR><TD ALIGN="LEFT">+ df_sal</TD></TR><TR><TD ALIGN="LEFT">+ fig</TD></TR><TR><TD ALIGN="LEFT">+ last_in_dbz</TD></TR><TR><TD ALIGN="LEFT">+ last_in_rain</TD></TR><TR><TD ALIGN="LEFT">+ melhor</TD></TR><TR><TD ALIGN="LEFT">+ n</TD></TR><TR><TD ALIGN="LEFT">+ persistence_rain</TD></TR><TR><TD ALIGN="LEFT">+ r</TD></TR><TR><TD ALIGN="LEFT"><I>+ 6 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _clean(f)</TD></TR><TR><TD ALIGN="LEFT">- _objects(field)</TD></TR><TR><TD ALIGN="LEFT">+ compute_sal_step(obs_2d, mod_2d, res_km, min_rain_thr)</TD></TR><TR><TD ALIGN="LEFT">+ sal_over_set(obs_seqs, preds)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>datetime<BR/>gptcast<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>scipy>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>RES_KM<BR/>SERIES_CACHE_DIR<BR/>dt<BR/>forecast8_rain<BR/>forecast8_zeroshot_rain<BR/>ground_truth_rain<BR/>input_data_dbz>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

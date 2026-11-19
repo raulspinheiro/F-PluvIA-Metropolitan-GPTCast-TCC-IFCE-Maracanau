@@ -1,0 +1,13 @@
+digraph "9" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 9</B> — 216 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 9</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ MEMBER_SEEDS</TD></TR><TR><TD ALIGN="LEFT">+ N_MEMBERS</TD></TR><TR><TD ALIGN="LEFT">+ PAINEL</TD></TR><TR><TD ALIGN="LEFT">+ TAB_COLS</TD></TR><TR><TD ALIGN="LEFT">+ TETO_VQGAN</TD></TR><TR><TD ALIGN="LEFT">+ THRESHOLDS</TD></TR><TR><TD ALIGN="LEFT">+ axes</TD></TR><TR><TD ALIGN="LEFT">+ col</TD></TR><TR><TD ALIGN="LEFT">+ color</TD></TR><TR><TD ALIGN="LEFT">+ cols</TD></TR><TR><TD ALIGN="LEFT">+ cores</TD></TR><TR><TD ALIGN="LEFT">+ data_str</TD></TR><TR><TD ALIGN="LEFT">+ df_gpt8</TD></TR><TR><TD ALIGN="LEFT">+ df_gpt8_zs</TD></TR><TR><TD ALIGN="LEFT"><I>+ 25 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _to_dbz(rain)</TD></TR><TR><TD ALIGN="LEFT">+ evaluate_nowcast_by_leadtime(obs_seq, pred_seq, model_name, step…)</TD></TR><TR><TD ALIGN="LEFT">+ forecast_members(model, seeds)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>datetime<BR/>gptcast<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>skimage<BR/>torch>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>SERIES_CACHE_DIR<BR/>clean_in_dbz<BR/>df_stage1_raw<BR/>dt<BR/>forecast8_rain<BR/>forecast8_zeroshot_rain<BR/>gpt8<BR/>gpt8_zeroshot<BR/>ground_truth_rain<BR/>input_data_dbz>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>_2019_2025.csv>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

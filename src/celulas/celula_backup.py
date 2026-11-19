@@ -1,7 +1,7 @@
 # @title
 # Célula Backup: Pacote Completo da Execução (.zip no Drive + download) — notebook e HTML, tabelas e
-# figuras com as subpastas preservadas (inclusive as da Célula 13), manifesto SHA-256, código de todas as
-# células (lido do notebook salvo) e ambiente Python.
+# figuras com as subpastas preservadas (inclusive as da Célula 13), diagramas UML, manifesto SHA-256, código de
+# todas as células (lido do notebook salvo) e ambiente Python.
 import datetime
 import fnmatch
 import hashlib
@@ -28,6 +28,7 @@ IGNORAR = ['cell12_previsoes_*', 'previsoes', 'cache_*', '*.tmp*', '.ipynb_check
            '*6_orgaos*', '*6orgaos*', '*interinstitucional*', 'inmet_*', '*pluviometros_inmet*']   # antiga Célula 13.1 (órgãos / INMET), removida
 # Pastas de resultados fora de RESULTS_ENV_DIR que também entram no pacote (rótulo -> pasta)
 PASTAS_EXTRAS = {'comparativo_hardware': Path(SERIES_CACHE_DIR) / 'comparativo_hardware_G4_vs_H100'}   # Célula 13
+UML_DIR = Path(globals().get('UML_DIR') or Path(SERIES_CACHE_DIR) / 'diagramas_uml')         # Célula Full UMLs
 BAIXAR_NO_NAVEGADOR = True
 LIMITE_DOWNLOAD_MB = 1500                                # acima disso o navegador costuma falhar; fica só no Drive
 
@@ -95,7 +96,14 @@ for rotulo, pasta in PASTAS_EXTRAS.items():
     copiar_arvore(pasta, Path(rotulo))
   else:
     avisos.append(f'Pasta {rotulo} não encontrada ({pasta}): rode a célula que a gera, se quiser incluí-la.')
-print(f'[2/5] {n_tab} tabelas e {n_fig} figuras copiadas (subpastas preservadas, sem sobrescrever nomes iguais).')
+# Diagramas UML da Célula Full UMLs: a pasta inteira (PNG, SVG, DOT e o índice README.md), com as subpastas
+n_uml = 0
+if UML_DIR.is_dir():
+  shutil.copytree(UML_DIR, STAGE / '06_diagramas_uml', dirs_exist_ok=True)
+  n_uml = sum(1 for p in (STAGE / '06_diagramas_uml').rglob('*') if p.is_file())
+else:
+  avisos.append(f'Diagramas UML não encontrados ({UML_DIR.name}): rode a Célula Full UMLs, se quiser incluí-los.')
+print(f'[2/5] {n_tab} tabelas, {n_fig} figuras e {n_uml} arquivos de diagramas UML (subpastas preservadas, sem sobrescrever nomes iguais).')
 
 # ------------------------------------------------- 4. código das células e ambiente Python
 _EMAIL = re.compile(r'[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+')
@@ -145,7 +153,7 @@ for p in sorted(STAGE.rglob('*')):
 (STAGE / 'LEIA-ME.json').write_text(json.dumps({
     'projeto': 'F-PluvIA Metropolitan — TCC, Bacharelado em Ciência da Computação, IFCE Campus Maracanaú (2026.2)',
     'ambiente': ENV_LABEL, 'env_tag': ENV_TAG, 'gerado_em_fortaleza': agora.isoformat(timespec='seconds'),
-    'arquivos': len(conteudo), 'tabelas': n_tab, 'figuras': n_fig, 'celulas_com_codigo': sorted(ultima),
+    'arquivos': len(conteudo), 'tabelas': n_tab, 'figuras': n_fig, 'diagramas_uml': n_uml, 'celulas_com_codigo': sorted(ultima),
     'fora_do_pacote': 'séries .npz, checkpoints .ckpt e blocos de previsões: ficam nas pastas originais do Drive',
     'conferir': 'sha256sum -c SHA256SUMS_pacote.txt (na pasta extraída)', 'avisos': avisos,
 }, indent=2, ensure_ascii=False), encoding='utf-8')

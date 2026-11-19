@@ -1,0 +1,13 @@
+digraph "4_3_opcional_fine_tuning_suave_adds_anot" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 4.3 (Opcional - Fine-Tuning Suave - Adds Another Dimension of Search)</B> — 346 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 4.3 (Opcional - Fine-Tuning Suave - Adds Another Dimension of Search)</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ ACUM</TD></TR><TR><TD ALIGN="LEFT">+ ALT_DIR</TD></TR><TR><TD ALIGN="LEFT">+ BATCH</TD></TR><TR><TD ALIGN="LEFT">+ CELL4_3_TREINO_ALT</TD></TR><TR><TD ALIGN="LEFT">+ D</TD></TR><TR><TD ALIGN="LEFT">+ FORCAR_TREINO_ALT</TD></TR><TR><TD ALIGN="LEFT">+ L</TD></TR><TR><TD ALIGN="LEFT">+ LR_ALT</TD></TR><TR><TD ALIGN="LEFT">+ MAX_EPOCAS_ALT</TD></TR><TR><TD ALIGN="LEFT">+ N</TD></TR><TR><TD ALIGN="LEFT">+ N_BOOT</TD></TR><TR><TD ALIGN="LEFT">+ PACIENCIA_VAL</TD></TR><TR><TD ALIGN="LEFT">+ PROMOVER_SE_MELHOR</TD></TR><TR><TD ALIGN="LEFT">+ SEED</TD></TR><TR><TD ALIGN="LEFT"><I>+ 69 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _carregar_pesos(model, path)</TD></TR><TR><TD ALIGN="LEFT">- _sync()</TD></TR><TR><TD ALIGN="LEFT">+ perdas_por_janela(model)</TD></TR><TR><TD ALIGN="LEFT">- _ic(delta)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>copy<BR/>datetime<BR/>glob<BR/>json<BR/>lightning<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>pytorch_lightning<BR/>re<BR/>shutil<BR/>textwrap<BR/>time<BR/><I>+ 1 mais</I>>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ACCUM_STEPS_AUTO<BR/>BATCH_SIZE_AUTO<BR/>CHECKPOINTS_ENV_DIR<BR/>CONTEXT_STEPS<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>GPTCast<BR/>RESULTS_ENV_DIR<BR/>SEED<BR/>md_rmf<BR/>training_record_json>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>metrics.csv>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

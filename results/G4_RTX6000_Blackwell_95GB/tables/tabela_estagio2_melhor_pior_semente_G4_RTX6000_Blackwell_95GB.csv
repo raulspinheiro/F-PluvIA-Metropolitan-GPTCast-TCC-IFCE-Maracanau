@@ -1,11 +1,11 @@
 Modelo,Métrica,Lead Time,Média ± dp,Melhor (semente),Pior (semente),Semente 42
 GPTCast-8x8 (Fine-Tuned RMF),"RMSE (mm/h, ↓)",+30 min,0.864 ± 0.143,0.731 (49),1.077 (47),0.749
 GPTCast-8x8 (Fine-Tuned RMF),"RMSE (mm/h, ↓)",+60 min,0.694 ± 0.213,0.520 (48),1.111 (43),0.549
-GPTCast-8x8 (Fine-Tuned RMF),"RMSE (mm/h, ↓)",+90 min,0.738 ± 0.262,0.567 (45),1.397 (51),0.601
+GPTCast-8x8 (Fine-Tuned RMF),"RMSE (mm/h, ↓)",+90 min,0.738 ± 0.262,0.566 (45),1.397 (51),0.601
 GPTCast-8x8 (Fine-Tuned RMF),"RMSE (mm/h, ↓)",+120 min,1.680 ± 1.860,0.625 (50),6.854 (43),0.711
 GPTCast-8x8 (Fine-Tuned RMF),"MAE (mm/h, ↓)",+30 min,0.363 ± 0.064,0.300 (48),0.477 (47),0.311
 GPTCast-8x8 (Fine-Tuned RMF),"MAE (mm/h, ↓)",+60 min,0.335 ± 0.069,0.269 (48),0.475 (47),0.279
-GPTCast-8x8 (Fine-Tuned RMF),"MAE (mm/h, ↓)",+90 min,0.360 ± 0.104,0.277 (45),0.589 (51),0.296
+GPTCast-8x8 (Fine-Tuned RMF),"MAE (mm/h, ↓)",+90 min,0.360 ± 0.104,0.277 (45),0.590 (51),0.296
 GPTCast-8x8 (Fine-Tuned RMF),"MAE (mm/h, ↓)",+120 min,0.577 ± 0.197,0.338 (50),0.976 (43),0.363
 GPTCast-8x8 (Fine-Tuned RMF),SSIM em dBZ (↑),+30 min,0.491 ± 0.033,0.547 (48),0.447 (46),0.519
 GPTCast-8x8 (Fine-Tuned RMF),SSIM em dBZ (↑),+60 min,0.403 ± 0.033,0.443 (42),0.332 (51),0.443
@@ -18,7 +18,7 @@ GPTCast-8x8 (Fine-Tuned RMF),"CSI ≥ 0,5 mm/h (↑)",+120 min,0.143 ± 0.074,0.
 GPTCast-8x8 (Zero-Shot),"RMSE (mm/h, ↓)",+30 min,0.976 ± 0.239,0.729 (42),1.548 (49),0.729
 GPTCast-8x8 (Zero-Shot),"RMSE (mm/h, ↓)",+60 min,0.883 ± 0.413,0.534 (45),1.672 (49),0.636
 GPTCast-8x8 (Zero-Shot),"RMSE (mm/h, ↓)",+90 min,0.683 ± 0.177,0.509 (45),1.122 (48),0.675
-GPTCast-8x8 (Zero-Shot),"RMSE (mm/h, ↓)",+120 min,0.772 ± 0.259,0.546 (47),1.250 (48),0.718
+GPTCast-8x8 (Zero-Shot),"RMSE (mm/h, ↓)",+120 min,0.772 ± 0.258,0.546 (47),1.249 (48),0.718
 GPTCast-8x8 (Zero-Shot),"MAE (mm/h, ↓)",+30 min,0.383 ± 0.056,0.310 (45),0.477 (49),0.324
 GPTCast-8x8 (Zero-Shot),"MAE (mm/h, ↓)",+60 min,0.352 ± 0.090,0.252 (45),0.497 (49),0.327
 GPTCast-8x8 (Zero-Shot),"MAE (mm/h, ↓)",+90 min,0.291 ± 0.046,0.218 (45),0.365 (48),0.307
@@ -26,7 +26,7 @@ GPTCast-8x8 (Zero-Shot),"MAE (mm/h, ↓)",+120 min,0.324 ± 0.072,0.254 (45),0.4
 GPTCast-8x8 (Zero-Shot),SSIM em dBZ (↑),+30 min,0.486 ± 0.018,0.519 (49),0.463 (51),0.483
 GPTCast-8x8 (Zero-Shot),SSIM em dBZ (↑),+60 min,0.460 ± 0.040,0.498 (43),0.355 (51),0.450
 GPTCast-8x8 (Zero-Shot),SSIM em dBZ (↑),+90 min,0.485 ± 0.053,0.556 (45),0.379 (51),0.485
-GPTCast-8x8 (Zero-Shot),SSIM em dBZ (↑),+120 min,0.425 ± 0.074,0.499 (45),0.252 (43),0.495
+GPTCast-8x8 (Zero-Shot),SSIM em dBZ (↑),+120 min,0.425 ± 0.074,0.499 (45),0.252 (43),0.496
 GPTCast-8x8 (Zero-Shot),"CSI ≥ 0,5 mm/h (↑)",+30 min,0.331 ± 0.082,0.420 (45),0.160 (46),0.378
 GPTCast-8x8 (Zero-Shot),"CSI ≥ 0,5 mm/h (↑)",+60 min,0.173 ± 0.083,0.339 (43),0.055 (46),0.179
 GPTCast-8x8 (Zero-Shot),"CSI ≥ 0,5 mm/h (↑)",+90 min,0.111 ± 0.090,0.297 (43),0.010 (46),0.164

@@ -1,6 +1,6 @@
 # @title
 # Célula (Deploy Automatizado): Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
-# SHA-256 (Célula Extra 2), código das células e o notebook, com verificação de dados sensíveis antes do push.
+# SHA-256 (Célula Extra 2), diagramas UML, código das células e o notebook, com verificação de dados sensíveis antes do push.
 import base64
 import datetime
 import fnmatch
@@ -142,6 +142,24 @@ if _pv and os.path.isdir(_pv):
 else:
   print('  [aviso] Pseudo-códigos não encontrados nesta sessão: rode a Célula Base (Pseudo-vista) antes, se quiser enviá-los.')
 
+# 4b''. Diagramas UML da Célula Full UMLs, se ela rodou nesta sessão (pasta espelhada: versões antigas saem)
+_uml = globals().get('UML_DIR')
+if _uml and os.path.isdir(_uml):
+  _uml_arqs = [p for p in sorted(Path(_uml).rglob('*')) if p.is_file() and p.suffix.lower() in {'.png', '.svg', '.dot', '.md'}]
+  _uml_rel = {p.relative_to(_uml).as_posix() for p in _uml_arqs}
+  for p in sorted((CLONE_DIR / 'docs' / 'uml').rglob('*')) if (CLONE_DIR / 'docs' / 'uml').is_dir() else []:
+    if p.is_file() and p.relative_to(CLONE_DIR / 'docs' / 'uml').as_posix() not in _uml_rel:
+      rel = p.relative_to(CLONE_DIR).as_posix()
+      if git('ls-files', rel):
+        git('rm', '-q', rel)
+      else:
+        p.unlink()
+      removidos.append(rel)
+  for p in _uml_arqs:
+    copiar(p, f'docs/uml/{p.relative_to(_uml).as_posix()}')
+else:
+  print('  [aviso] Diagramas UML não encontrados nesta sessão: rode a Célula Full UMLs antes, se quiser enviá-los.')
+
 # 4c. Código de cada célula executada (e-mails e senhas ocultados)
 _EMAIL = re.compile(r'[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+')
 _SEGREDO = re.compile(r'''((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s*=\s*)(['"]).+?\2''', re.I)
@@ -215,6 +233,7 @@ if CRIAR_README_SE_FALTAR and not any((CLONE_DIR / n).exists() for n in ('README
       '| Pasta | Conteúdo |\n|---|---|\n'
       '| `notebooks/` | Notebook do Google Colab com todas as células |\n'
       '| `src/celulas/` | Código de cada célula, um arquivo por célula |\n'
+      '| `docs/uml/` | Diagramas UML de cada célula e do fluxo entre células |\n'
       '| `results/<ambiente>/tables/` | Tabelas de métricas (.csv) |\n'
       '| `results/<ambiente>/figures/` | Figuras e mapas (.png) |\n'
       '| `docs/provenance/` | Manifesto SHA-256 dos artefatos (conferir com `sha256sum -c`) |\n\n'

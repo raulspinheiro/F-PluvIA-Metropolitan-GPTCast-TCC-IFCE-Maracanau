@@ -1,0 +1,11 @@
+digraph "7" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 7</B> — 161 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 7</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ BANDS</TD></TR><TR><TD ALIGN="LEFT">+ NATIVE_KM</TD></TR><TR><TD ALIGN="LEFT">+ NYQUIST_GRID_KM</TD></TR><TR><TD ALIGN="LEFT">+ NYQUIST_NATIVE_KM</TD></TR><TR><TD ALIGN="LEFT">+ RES_GRID_KM</TD></TR><TR><TD ALIGN="LEFT">+ TOKEN_KM</TD></TR><TR><TD ALIGN="LEFT">+ ax</TD></TR><TR><TD ALIGN="LEFT">+ axes</TD></TR><TR><TD ALIGN="LEFT">+ band_records</TD></TR><TR><TD ALIGN="LEFT">+ data_str</TD></TR><TR><TD ALIGN="LEFT">+ dev</TD></TR><TR><TD ALIGN="LEFT">+ df_spectral_raw</TD></TR><TR><TD ALIGN="LEFT">+ fig</TD></TR><TR><TD ALIGN="LEFT">+ lead</TD></TR><TR><TD ALIGN="LEFT"><I>+ 15 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ compute_frame_rapsd(field_2d, res_km)</TD></TR><TR><TD ALIGN="LEFT">+ band_ratios(wl, psd_model, psd_obs)</TD></TR><TR><TD ALIGN="LEFT">- _baselines_pysteps()</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>datetime<BR/>gptcast<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>pysteps<BR/>typing>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>GRID_SIZE<BR/>RESULTS_ENV_DIR<BR/>RES_KM<BR/>SERIES_CACHE_DIR<BR/>dt<BR/>forecast8_rain<BR/>forecast8_zeroshot_rain<BR/>ground_truth_rain<BR/>input_data_dbz<BR/>linda_rain<BR/>lk_extrap_rain<BR/><I>+ 3 mais</I>>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

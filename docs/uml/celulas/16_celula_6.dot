@@ -1,0 +1,13 @@
+digraph "6" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 6</B> — 153 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 6</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ BATCH_FRAMES</TD></TR><TR><TD ALIGN="LEFT">+ STEP_MIN</TD></TR><TR><TD ALIGN="LEFT">+ THRESHOLDS</TD></TR><TR><TD ALIGN="LEFT">+ TOKEN_KM</TD></TR><TR><TD ALIGN="LEFT">+ data_str</TD></TR><TR><TD ALIGN="LEFT">+ device</TD></TR><TR><TD ALIGN="LEFT">+ df_stage1_raw</TD></TR><TR><TD ALIGN="LEFT">+ obs_4_dbz</TD></TR><TR><TD ALIGN="LEFT">+ obs_4_rain</TD></TR><TR><TD ALIGN="LEFT">+ obs_t_rain</TD></TR><TR><TD ALIGN="LEFT">+ periodo</TD></TR><TR><TD ALIGN="LEFT">+ rec_4_dbz</TD></TR><TR><TD ALIGN="LEFT">+ rec_4_rain</TD></TR><TR><TD ALIGN="LEFT">+ rec_t_dbz</TD></TR><TR><TD ALIGN="LEFT"><I>+ 11 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _sync()</TD></TR><TR><TD ALIGN="LEFT">- _to_rain(dbz)</TD></TR><TR><TD ALIGN="LEFT">+ reconstruct_sequence_vqgan(model_gptcast, seq_dbz, device, bat…)</TD></TR><TR><TD ALIGN="LEFT">+ compute_stage1_metrics(obs_rain, rec_rain, obs_dbz, rec_db…)</TD></TR><TR><TD ALIGN="LEFT">+ unique_test_frames(dataset)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>datetime<BR/>gptcast<BR/>numpy<BR/>os<BR/>pandas<BR/>skimage<BR/>time<BR/>torch<BR/>typing>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>GRID_SIZE<BR/>RESULTS_ENV_DIR<BR/>RES_KM<BR/>SERIES_CACHE_DIR<BR/>dt<BR/>gpt8<BR/>ground_truth_dbz<BR/>md_rmf<BR/>plot_rmf_spatial>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>_2019_2025.csv>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

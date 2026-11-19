@@ -1,0 +1,11 @@
+digraph "4_2" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 4.2</B> — 152 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 4.2</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ FRACAO</TD></TR><TR><TD ALIGN="LEFT">+ VC</TD></TR><TR><TD ALIGN="LEFT">+ ax1</TD></TR><TR><TD ALIGN="LEFT">+ ax2</TD></TR><TR><TD ALIGN="LEFT">+ best_val</TD></TR><TR><TD ALIGN="LEFT">+ col_te</TD></TR><TR><TD ALIGN="LEFT">+ col_ts</TD></TR><TR><TD ALIGN="LEFT">+ col_v</TD></TR><TR><TD ALIGN="LEFT">+ cores</TD></TR><TR><TD ALIGN="LEFT">+ curva_ep</TD></TR><TR><TD ALIGN="LEFT">+ diag</TD></TR><TR><TD ALIGN="LEFT">+ fig</TD></TR><TR><TD ALIGN="LEFT">+ gap</TD></TR><TR><TD ALIGN="LEFT">+ gs</TD></TR><TR><TD ALIGN="LEFT"><I>+ 24 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _fmt_t(s)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>json<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>textwrap>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_LABEL<BR/>ENV_TAG<BR/>RESULTS_ENV_DIR<BR/>training_record_json>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

@@ -1,0 +1,11 @@
+digraph "13_2" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 13.2</B> — 259 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 13.2</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ ALERT_LEVELS</TD></TR><TR><TD ALIGN="LEFT">+ CELL13_2_RESULTS</TD></TR><TR><TD ALIGN="LEFT">+ CURTO</TD></TR><TR><TD ALIGN="LEFT">+ DECOD_TXT</TD></TR><TR><TD ALIGN="LEFT">+ LEADS</TD></TR><TR><TD ALIGN="LEFT">+ N26</TD></TR><TR><TD ALIGN="LEFT">+ N_BOOT</TD></TR><TR><TD ALIGN="LEFT">+ NOMES</TD></TR><TR><TD ALIGN="LEFT">+ OUT_DIR</TD></TR><TR><TD ALIGN="LEFT">+ PROD26</TD></TR><TR><TD ALIGN="LEFT">+ R12</TD></TR><TR><TD ALIGN="LEFT">+ R13</TD></TR><TR><TD ALIGN="LEFT">+ ROTULO_2025</TD></TR><TR><TD ALIGN="LEFT">+ ROTULO_2026</TD></TR><TR><TD ALIGN="LEFT"><I>+ 60 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ classification_scores(tp, fp, fn, tn)</TD></TR><TR><TD ALIGN="LEFT">- _counts(ob, pb)</TD></TR><TR><TD ALIGN="LEFT">+ municipal_means(rain_4d)</TD></TR><TR><TD ALIGN="LEFT">+ bootstrap_f1(o, preds, ts)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>CELL12_FULL_2025_RESULTS<BR/>CELL13_1_RESULTS<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>SEED<BR/>SERIES_CACHE_DIR<BR/>adaptee<BR/>gdf_rmf<BR/>md_rmf<BR/>mun_masks<BR/>pct>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

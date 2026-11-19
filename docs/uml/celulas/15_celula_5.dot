@@ -1,0 +1,13 @@
+digraph "5" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 5</B> — 174 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 5</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ GEOJSON_CE_URL</TD></TR><TR><TD ALIGN="LEFT">+ GEOJSON_LOCAL</TD></TR><TR><TD ALIGN="LEFT">+ N_LEADS</TD></TR><TR><TD ALIGN="LEFT">+ RMF_MUNICIPIOS</TD></TR><TR><TD ALIGN="LEFT">+ STEP_MIN</TD></TR><TR><TD ALIGN="LEFT">+ caso</TD></TR><TR><TD ALIGN="LEFT">+ cmap_rain</TD></TR><TR><TD ALIGN="LEFT">+ context_rain_t0</TD></TR><TR><TD ALIGN="LEFT">+ extent_rmf</TD></TR><TR><TD ALIGN="LEFT">+ faltando</TD></TR><TR><TD ALIGN="LEFT">+ gdf_ce</TD></TR><TR><TD ALIGN="LEFT">+ gdf_fortaleza</TD></TR><TR><TD ALIGN="LEFT">+ gdf_rmf</TD></TR><TR><TD ALIGN="LEFT">+ lat_grid</TD></TR><TR><TD ALIGN="LEFT"><I>+ 8 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">- _valid_times(base_dt, n)</TD></TR><TR><TD ALIGN="LEFT">- _fmt_t(t)</TD></TR><TR><TD ALIGN="LEFT">- _draw_map(ax, field, title, show_left)</TD></TR><TR><TD ALIGN="LEFT">+ plot_rmf_spatial(data_4steps, base_dt, panel_title, …)</TD></TR><TR><TD ALIGN="LEFT">+ plot_rmf_comparison(rows, context_rain, base_dt, panel_…)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>cartopy<BR/>datetime<BR/>geopandas<BR/>gptcast<BR/>matplotlib<BR/>numpy<BR/>os<BR/>urllib<BR/>warnings>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>BASE_WORK_DIR<BR/>ENV_LABEL<BR/>ENV_TAG<BR/>FORECAST_STEPS<BR/>RESULTS_ENV_DIR<BR/>RES_KM<BR/>SERIES_CACHE_DIR<BR/>dt<BR/>forecast8_rain<BR/>forecast8_zeroshot_rain<BR/>ground_truth_rain<BR/>input_data_dbz<BR/>md_rmf>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>ceara_municipios_ibge.json<BR/>geojs-23-mun.json>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

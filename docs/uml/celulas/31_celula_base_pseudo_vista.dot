@@ -1,0 +1,15 @@
+digraph "base_pseudo_vista" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula Base (Pseudo-vista)</B> — 364 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula Base (Pseudo-vista)</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ CMP</TD></TR><TR><TD ALIGN="LEFT">+ EXIBIR</TD></TR><TR><TD ALIGN="LEFT">+ LEGENDA</TD></TR><TR><TD ALIGN="LEFT">+ MAX_LINHA</TD></TR><TR><TD ALIGN="LEFT">+ MAX_TEXTO</TD></TR><TR><TD ALIGN="LEFT">+ NOTEBOOK_NAME</TD></TR><TR><TD ALIGN="LEFT">+ NOTEBOOK_PATH</TD></TR><TR><TD ALIGN="LEFT">+ OPS</TD></TR><TR><TD ALIGN="LEFT">+ PSEUDO_DIR</TD></TR><TR><TD ALIGN="LEFT">+ exp</TD></TR><TR><TD ALIGN="LEFT">+ html</TD></TR><TR><TD ALIGN="LEFT">+ html_path</TD></TR><TR><TD ALIGN="LEFT">+ indice</TD></TR><TR><TD ALIGN="LEFT">+ m</TD></TR><TR><TD ALIGN="LEFT"><I>+ 9 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ ocultar(s)</TD></TR><TR><TD ALIGN="LEFT">+ E(n)</TD></TR><TR><TD ALIGN="LEFT">- _args(a)</TD></TR><TR><TD ALIGN="LEFT">- _preparar(src)</TD></TR><TR><TD ALIGN="LEFT">+ traduzir(src)</TD></TR></TABLE></TD></TR></TABLE>>];
+  cls_Tradutor [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#E3F2FD"><TR><TD><FONT POINT-SIZE="9">«classe»</FONT><BR/><B>Tradutor</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ comentarios</TD></TR><TR><TD ALIGN="LEFT">+ out</TD></TR><TR><TD ALIGN="LEFT">+ usados</TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ __init__(src)</TD></TR><TR><TD ALIGN="LEFT">+ w(nivel, txt)</TD></TR><TR><TD ALIGN="LEFT">+ coment_antes(nivel, ate)</TD></TR><TR><TD ALIGN="LEFT">+ inline(ln)</TD></TR><TR><TD ALIGN="LEFT">+ bloco(corpo, nivel)</TD></TR><TR><TD ALIGN="LEFT">+ st(n, nv)</TD></TR></TABLE></TD></TR></TABLE>>];
+  celula -> cls_Tradutor [arrowtail=diamond, dir=back, label="define"];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>ast<BR/>copy<BR/>datetime<BR/>glob<BR/>io<BR/>json<BR/>nbconvert<BR/>nbformat<BR/>os<BR/>pandas<BR/>pathlib<BR/>re<BR/>tokenize<BR/>unicodedata>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>DETECTED_NB_PATH<BR/>ENV_TAG<BR/>SERIES_CACHE_DIR>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>00_LEIA-ME.txt<BR/>_pseudo_vista.html>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

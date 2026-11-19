@@ -1,0 +1,13 @@
+digraph "limpeza_de_saidas_obsoletas" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula (Limpeza de Saídas Obsoletas)</B> — 143 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula (Limpeza de Saídas Obsoletas)</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ ALVO</TD></TR><TR><TD ALIGN="LEFT">+ ARQUIVO_DIR</TD></TR><TR><TD ALIGN="LEFT">+ AUTH</TD></TR><TR><TD ALIGN="LEFT">+ CLONE</TD></TR><TR><TD ALIGN="LEFT">+ CORTE_UTC</TD></TR><TR><TD ALIGN="LEFT">+ GIT_USER_EMAIL</TD></TR><TR><TD ALIGN="LEFT">+ GIT_USER_NAME</TD></TR><TR><TD ALIGN="LEFT">+ LIMPAR_GITHUB</TD></TR><TR><TD ALIGN="LEFT">+ OBSOLETOS</TD></TR><TR><TD ALIGN="LEFT">+ REPO_URL</TD></TR><TR><TD ALIGN="LEFT">+ RESULTS_ENV_DIR</TD></TR><TR><TD ALIGN="LEFT">+ SO_LISTAR</TD></TR><TR><TD ALIGN="LEFT">+ TOKEN</TD></TR><TR><TD ALIGN="LEFT">+ achados</TD></TR><TR><TD ALIGN="LEFT"><I>+ 11 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT"><FONT COLOR="#888888">—</FONT></TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>base64<BR/>datetime<BR/>google<BR/>os<BR/>pandas<BR/>pathlib<BR/>shutil<BR/>subprocess>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_TAG<BR/>RESULTS_ENV_DIR<BR/>SERIES_CACHE_DIR<BR/>git>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+  arquivos [shape=folder, style=filled, fillcolor="#EDE7F6", fontsize=9, label=<<B>arquivos citados</B><BR/>LEIA-ME.txt<BR/>_{ENV}.png<BR/>benchmark_agregado_teste2025_imerg_fr_2km_{ENV}_N30.csv<BR/>comparativo_interinstitucional_leadtime_teste2025_{ENV}_N30.csv<BR/>diagnostico_vqgan_estagio1_{ENV}.csv<BR/>evolucao_temporal_estudo_caso_{ENV}.csv<BR/>fpluvia_metricas_ml_estudo_caso_2km_{ENV}.csv<BR/>fpluvia_metricas_ml_teste2025_2km_{ENV}_N30.csv<BR/><I>+ 17 mais</I>>];
+  celula -> arquivos [style=dotted, arrowhead=open, label="lê/grava"];
+}

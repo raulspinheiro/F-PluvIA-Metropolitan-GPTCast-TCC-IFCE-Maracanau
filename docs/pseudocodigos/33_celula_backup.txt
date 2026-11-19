@@ -1,7 +1,7 @@
 // ===== Célula Backup — pseudo-código =====
 // Célula Backup: Pacote Completo da Execução (.zip no Drive + download) — notebook e HTML, tabelas e
-// figuras com as subpastas preservadas (inclusive as da Célula 13), manifesto SHA-256, código de todas as
-// células (lido do notebook salvo) e ambiente Python.
+// figuras com as subpastas preservadas (inclusive as da Célula 13), diagramas UML, manifesto SHA-256, código de
+// todas as células (lido do notebook salvo) e ambiente Python.
 IMPORTAR datetime
 IMPORTAR fnmatch
 IMPORTAR hashlib
@@ -25,6 +25,7 @@ EXT ← {".csv", ".png", ".jpg", ".svg", ".pdf", ".json", ".md", ".txt", ".log",
 IGNORAR ← ["cell12_previsoes_*", "previsoes", "cache_*", "*.tmp*", ".ipynb_checkpoints", "__pycache__", "*6_orgaos*", "*6orgaos*", "*interinstitucion…
 // Pastas de resultados fora de RESULTS_ENV_DIR que também entram no pacote (rótulo -> pasta)
 PASTAS_EXTRAS ← {"comparativo_hardware": Path(SERIES_CACHE_DIR) / "comparativo_hardware_G4_vs_H100"}   // Célula 13
+UML_DIR ← Path(globals().get("UML_DIR") OU Path(SERIES_CACHE_DIR) / "diagramas_uml")   // Célula Full UMLs
 BAIXAR_NO_NAVEGADOR ← VERDADEIRO
 LIMITE_DOWNLOAD_MB ← 1500   // acima disso o navegador costuma falhar; fica só no Drive
 agora ← datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=−3)))
@@ -97,7 +98,15 @@ PARA CADA (rotulo, pasta) EM PASTAS_EXTRAS.items() FAÇA
         EXECUTAR avisos.append(f'Pasta {rotulo} não encontrada ({pasta}): rode a célula que a g…)
     FIM SE
 FIM PARA
-EXIBIR f'[2/5] {n_tab} tabelas e {n_fig} figuras copiadas (subpastas pr…
+// Diagramas UML da Célula Full UMLs: a pasta inteira (PNG, SVG, DOT e o índice README.md), com as subpastas
+n_uml ← 0
+SE UML_DIR.is_dir() ENTÃO
+    EXECUTAR shutil.copytree(UML_DIR, STAGE / "06_diagramas_uml", dirs_exist_ok=VERDADEIRO)
+    n_uml ← sum([1 PARA CADA p EM STAGE / "06_diagramas_uml".rglob("*") SE p.is_file()])
+SENÃO
+    EXECUTAR avisos.append(f'Diagramas UML não encontrados ({UML_DIR.name}): rode a Célula …)
+FIM SE
+EXIBIR f'[2/5] {n_tab} tabelas, {n_fig} figuras e {n_uml} arquivos de d…
 // ------------------------------------------------- 4. código das células e ambiente Python
 _EMAIL ← re.compile("[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+")
 _SEGREDO ← re.compile("((?:pass(?:word)?|senha|pwd|token|secret|api_?key)\w*\s*=\s*…", re.I)

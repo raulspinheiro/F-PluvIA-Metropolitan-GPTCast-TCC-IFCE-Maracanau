@@ -1,6 +1,6 @@
 // ===== Célula (Deploy Automatizado) — pseudo-código =====
 // Célula (Deploy Automatizado): Envio dos Artefatos para o GitHub — tabelas e figuras de RESULTS_ENV_DIR, manifesto
-// SHA-256 (Célula Extra 2), código das células e o notebook, com verificação de dados sensíveis antes do push.
+// SHA-256 (Célula Extra 2), diagramas UML, código das células e o notebook, com verificação de dados sensíveis antes do push.
 IMPORTAR base64
 IMPORTAR datetime
 IMPORTAR fnmatch
@@ -141,6 +141,28 @@ SE _pv E os.path.isdir(_pv) ENTÃO
     FIM PARA
 SENÃO
     EXIBIR "  [aviso] Pseudo-códigos não encontrados nesta sessão: rode …"
+FIM SE
+// 4b''. Diagramas UML da Célula Full UMLs, se ela rodou nesta sessão (pasta espelhada: versões antigas saem)
+_uml ← globals().get("UML_DIR")
+SE _uml E os.path.isdir(_uml) ENTÃO
+    _uml_arqs ← [p PARA CADA p EM sorted(Path(_uml).rglob("*")) SE p.is_file() E p.suffix.lower() EM {".png", ".svg", ".dot", ".md"}]
+    _uml_rel ← [p.relative_to(_uml).as_posix() PARA CADA p EM _uml_arqs]
+    PARA CADA p EM (sorted(CLONE_DIR / "docs" / "uml".rglob("*")) SE CLONE_DIR / "docs" / "uml".is_dir() SENÃO []) FAÇA
+        SE p.is_file() E p.relative_to(CLONE_DIR / "docs" / "uml").as_posix() NÃO EM _uml_rel ENTÃO
+            rel ← p.relative_to(CLONE_DIR).as_posix()
+            SE git("ls-files", rel) ENTÃO
+                EXECUTAR git("rm", "-q", rel)
+            SENÃO
+                EXECUTAR p.unlink()
+            FIM SE
+            EXECUTAR removidos.append(rel)
+        FIM SE
+    FIM PARA
+    PARA CADA p EM _uml_arqs FAÇA
+        EXECUTAR copiar(p, f'docs/uml/{p.relative_to(_uml).as_posix()}')
+    FIM PARA
+SENÃO
+    EXIBIR "  [aviso] Diagramas UML não encontrados nesta sessão: rode a…"
 FIM SE
 // 4c. Código de cada célula executada (e-mails e senhas ocultados)
 _EMAIL ← re.compile("[\w.+-]+@(?!users\.noreply\.github\.com)[\w-]+(?:\.[\w-]+)+")

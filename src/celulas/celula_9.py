@@ -158,6 +158,24 @@ display(df_stage2_seeds.set_index(['Modelo', 'Métrica', 'Lead Time']))
 # ------------------------------------------------------------------ 4. painel
 # Para cada GPTCast: faixa clara = mín.–máx.; faixa escura = média ± 1 dp;
 # linha grossa = média dos sorteios; a semente do pior sorteio de cada horizonte é escrita ao lado do ponto.
+# Teto da VQGAN (Estágio 1, Célula 6) nos mesmos 4 quadros-alvo, escrito só no título de cada painel
+_s1 = globals().get('df_stage1_raw')
+if _s1 is None:
+  _p1 = os.path.join(RESULTS_ENV_DIR, f'tabela3_estagio1_vqgan_2km_{ENV_TAG}_2019_2025.csv')
+  _s1 = pd.read_csv(_p1) if os.path.isfile(_p1) else None
+TETO_VQGAN = {}
+if _s1 is not None and len(_s1):
+  _caso = _s1[_s1['Conjunto Avaliado'].astype(str).str.startswith('Estudo de caso')]
+  _r = (_caso if len(_caso) else _s1).iloc[0]
+  for c, c1 in {'RMSE (↓) [mm/h]': 'RMSE [mm/h] (↓)', 'MAE (↓) [mm/h]': 'MAE [mm/h] (↓)',
+                'SSIM (↑)': 'SSIM dBZ (↑)', 'CSI_0.5': 'CSI/BIAS @ 0.5 mm/h'}.items():
+    try:
+      TETO_VQGAN[c] = float(str(_r[c1]).split('/')[0])
+    except (KeyError, ValueError):
+      pass
+else:
+  print('[Célula 9] Tabela do Estágio 1 não encontrada: os títulos saem sem o teto da VQGAN (rode a Célula 6).')
+
 fig, axes = plt.subplots(1, 4, figsize=(19, 4.8), constrained_layout=True)
 cores = {'GPTCast-8x8 (Fine-Tuned RMF)': ('#d62728', 'o-'), 'GPTCast-8x8 (Zero-Shot)': ('#ff7f0e', 'v--')}
 x = np.arange(1, FORECAST_STEPS + 1) * 30
@@ -182,14 +200,15 @@ for ax, (c, titulo, _) in zip(axes, PAINEL):
   if not sub.empty:
     ax.plot(sub['Lead_min_num'], pd.to_numeric(sub[c], errors='coerce'), 's:', color='#7f7f7f', lw=2,
             zorder=4, label='Persistência (Baseline)')
-  ax.set_title(titulo, fontweight='bold', fontsize=11)
+  ax.set_title(titulo + (f'  ·  teto VQGAN: {TETO_VQGAN[c]:.2f}' if c in TETO_VQGAN else ''),
+               fontweight='bold', fontsize=11)
   ax.set_xlabel('Horizonte (min)')
   ax.set_xticks(x)
   ax.grid(True, ls=':', alpha=0.6)
 axes[0].legend(fontsize=7.5)
 fig.suptitle(f'Estágio 2 por horizonte — estudo de caso {data_str} (validação) | linha grossa = média de '
              f'{len(MEMBER_SEEDS)} sorteios, faixa escura = ± 1 dp, faixa clara = mín.–máx., sNN = semente do pior '
-             f'sorteio | {ENV_LABEL}', fontsize=11, fontweight='bold')
+             f'sorteio, teto VQGAN = reconstrução sem previsão (Célula 6) | {ENV_LABEL}', fontsize=11, fontweight='bold')
 stage2_fig_path = os.path.join(RESULTS_ENV_DIR, f'painel_estagio2_leadtime_2km_{ENV_TAG}.png')
 fig.savefig(stage2_fig_path, dpi=300, bbox_inches='tight')
 plt.show()
