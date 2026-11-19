@@ -8,8 +8,7 @@
 
 > **Trabalho de Conclusão de Curso (TCC)**, no formato de artigo científico — Bacharelado em Ciência da Computação (2026.2)
 > **Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE) — Campus Maracanaú**
-> **Autor:** Raul Santiago Pinheiro · **Orientador:** Amauri Holanda de Souza Júnior
-
+> **Autor:** Raul Santiago Pinheiro ([Lattes](https://lattes.cnpq.br/8378024959016497)) · **Orientador:** Amauri Holanda de Souza Júnior ([Lattes](http://lattes.cnpq.br/2629504708221802) · [ORCID](https://orcid.org/0000-0002-2912-0781))
 ---
 
 ## 📌 Visão Geral
