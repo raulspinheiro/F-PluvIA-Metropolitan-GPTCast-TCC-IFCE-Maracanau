@@ -1,12 +1,4 @@
 Célula,Ocorrências,Nomes do GPTCast usados,Reatribuídos no notebook
-Célula 13.1,13,"converters, dbz_to_rainfall, decode_to_img, encode_to_c, encode_to_z, gptcast, predict_next_frame_indices, predict_next_index, transformer, utils",
 Célula 4,26,"GPTCast, base_learning_rate, converters, dbz_to_rainfall, encode_to_z, first_stage_model, forecast, gptcast, learning_rate, load_from_zenodo, models, transformer, utils",GPTCast.encode_to_z
-Célula 5,5,"converters, dbz_to_rainfall, gptcast, utils",
-Célula 6,6,"converters, dbz_to_rainfall, first_stage_model, gptcast, utils",
-Célula 7,6,"_d2r, converters, dbz_to_rainfall, gptcast, utils",
-Célula 8,5,"converters, dbz_to_rainfall, gptcast, utils",
-Célula 9,9,"converters, dbz_to_rainfall, forecast, gptcast, rainfall_to_dbz, utils",
-Célula 10,5,"converters, dbz_to_rainfall, gptcast, utils",
-Célula 12,15,"converters, dbz_to_rainfall, decode_to_img, encode_to_c, encode_to_z, gptcast, predict_next_frame_indices, predict_next_index, rainfall_to_dbz, transformer, utils",
 Célula (Activates Checkpoint),4,"first_stage_model, transformer",
-Célula 13.3,1,transformer,
+Célula 13.4,10,"decode_to_img, encode_to_c, encode_to_z, forward_with_past, predict_next_frame_indices, top_k_logits, transformer",

@@ -1,0 +1,11 @@
+digraph "13_4" {
+  graph [fontname="Helvetica", rankdir=LR, nodesep=0.35, ranksep=0.6, labelloc=t, fontsize=14];
+  node  [fontname="Helvetica", fontsize=10, shape=plain];
+  edge  [fontname="Helvetica", fontsize=8, color="#555555"];
+  label=<<B>Célula 13.4</B> — 287 linhas>;
+  celula [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#FFF8E1"><TR><TD><FONT POINT-SIZE="9">«célula»</FONT><BR/><B>Célula 13.4</B></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ AQUECIMENTO</TD></TR><TR><TD ALIGN="LEFT">+ BLOCK</TD></TR><TR><TD ALIGN="LEFT">+ CONTEXTO</TD></TR><TR><TD ALIGN="LEFT">+ CORES</TD></TR><TR><TD ALIGN="LEFT">+ DEVICE</TD></TR><TR><TD ALIGN="LEFT">+ DIF_MAX</TD></TR><TR><TD ALIGN="LEFT">+ GERADORES</TD></TR><TR><TD ALIGN="LEFT">+ K_RANGE</TD></TR><TR><TD ALIGN="LEFT">+ M_RANGE</TD></TR><TR><TD ALIGN="LEFT">+ MAX_S</TD></TR><TR><TD ALIGN="LEFT">+ MIN_S</TD></TR><TR><TD ALIGN="LEFT">+ N_DIV</TD></TR><TR><TD ALIGN="LEFT">+ N_EMP</TD></TR><TR><TD ALIGN="LEFT">+ P0</TD></TR><TR><TD ALIGN="LEFT"><I>+ 51 mais</I></TD></TR></TABLE></TD></TR><HR/><TR><TD><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD ALIGN="LEFT">+ br(n)</TD></TR><TR><TD ALIGN="LEFT">+ cronometro()</TD></TR><TR><TD ALIGN="LEFT">- _proximo_token(logits)</TD></TR><TR><TD ALIGN="LEFT">+ quadro_recalculo(ind_ctx, c_idx)</TD></TR><TR><TD ALIGN="LEFT">+ quadro_kv_cache(ind_ctx, c_idx)</TD></TR><TR><TD ALIGN="LEFT">+ codificar(ctx_dbz)</TD></TR><TR><TD ALIGN="LEFT">+ prever(ctx_dbz, passos, gerador)</TD></TR><TR><TD ALIGN="LEFT">+ verificar_token_a_token(ctx_dbz)</TD></TR></TABLE></TD></TR></TABLE>>];
+  libs [shape=tab, style=filled, fillcolor="#F1F8E9", fontsize=9, label=<<B>bibliotecas</B><BR/>einops<BR/>math<BR/>matplotlib<BR/>numpy<BR/>os<BR/>pandas<BR/>random<BR/>time<BR/>torch>];
+  celula -> libs [style=dashed, arrowhead=open, label="«import»"];
+  entradas [shape=note, style=filled, fillcolor="#FCE4EC", fontsize=9, label=<<B>usa de outras células</B><BR/>ENV_LABEL<BR/>ENV_TAG<BR/>RESULTS_ENV_DIR<BR/>SERIES_CACHE_DIR<BR/>gpt8<BR/>md_rmf>];
+  entradas -> celula [style=dashed, arrowhead=open, label="«use»"];
+}

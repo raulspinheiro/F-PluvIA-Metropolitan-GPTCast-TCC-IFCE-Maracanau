@@ -30,6 +30,7 @@ digraph pipeline {
   "13_1" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula 13.1</B><BR/><FONT POINT-SIZE="8">594 linhas · 0 classes · 17 funções</FONT>>];
   "13_2" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula 13.2</B><BR/><FONT POINT-SIZE="8">259 linhas · 0 classes · 4 funções</FONT>>];
   "13_3" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula 13.3</B><BR/><FONT POINT-SIZE="8">245 linhas · 0 classes · 4 funções</FONT>>];
+  "13_4" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula 13.4</B><BR/><FONT POINT-SIZE="8">287 linhas · 0 classes · 8 funções</FONT>>];
   "extra_1" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula Extra 1</B><BR/><FONT POINT-SIZE="8">268 linhas · 0 classes · 6 funções</FONT>>];
   "full_umls" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula Full UMLs</B><BR/><FONT POINT-SIZE="8">397 linhas · 0 classes · 13 funções</FONT>>];
   "extra_2" [shape=component, style=filled, fillcolor="#FFF8E1", label=<<B>Célula Extra 2</B><BR/><FONT POINT-SIZE="8">278 linhas · 0 classes · 5 funções</FONT>>];
@@ -64,6 +65,7 @@ digraph pipeline {
   "4" -> "13_1" [label="CONTEXT_STEPS, FORECAST_STEPS +3"];
   "4" -> "13_2" [label="FORECAST_STEPS, adaptee +1"];
   "4" -> "13_3" [label="CONTEXT_STEPS, FORECAST_STEPS"];
+  "4" -> "13_4" [label="md_rmf"];
   "4_1" -> "4_3_opcional_fine_tuning_suave_adds_anot" [label="SEED"];
   "4_3_opcional_fine_tuning_suave_adds_anot" -> "4_4" [label="gpt8"];
   "4_3_opcional_fine_tuning_suave_adds_anot" -> "activates_checkpoint" [label="best_ckpt_path"];
@@ -92,6 +94,7 @@ digraph pipeline {
   "12" -> "13_1" [label="CELL12_FULL_2025_RESULTS, SEED +2"];
   "12" -> "13_2" [label="CELL12_FULL_2025_RESULTS"];
   "12" -> "13_3" [label="gpt8"];
+  "12" -> "13_4" [label="gpt8"];
   "12" -> "extra_2" [label="BASE_DIR, gpt8"];
   "12_1" -> "13_2" [label="mun_masks"];
   "13_1" -> "13_2" [label="CELL13_1_RESULTS, SEED"];

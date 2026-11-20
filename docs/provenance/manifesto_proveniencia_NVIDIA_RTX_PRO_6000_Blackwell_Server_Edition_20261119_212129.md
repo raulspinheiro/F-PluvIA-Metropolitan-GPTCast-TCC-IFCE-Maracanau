@@ -1,6 +1,6 @@
 # Manifesto de integridade e proveniência — F-PluvIA Metropolitan
 
-**Emissão:** 19/11/2026 16:15:18 (Fortaleza) · 2026-11-19 19:15:18 UTC  
+**Emissão:** 19/11/2026 21:21:29 (Fortaleza) · 2026-11-20 00:21:29 UTC  
 **Ambiente:** NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB) · GPU NVIDIA RTX PRO 6000 Blackwell Server Edition · Python 3.13.16  
 **Autor:** Raul Santiago Pinheiro · **Orientador:** Amauri Holanda de Souza Júnior · Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE) — Campus Maracanaú · 2026.2
 
@@ -8,7 +8,7 @@
 
 Que os arquivos listados não mudaram desde a emissão: basta recalcular o SHA-256 de cada um (ou rodar "sha256sum -c" no arquivo SHA256SUMS). Não comprova autoria nem o hardware usado; esses campos são declarados pelo ambiente no momento da emissão.
 
-**Hash raiz (SHA-256 da lista de arquivos):** `ffdffd851b59394aa5e8b6897fd9544416d247cc4d67219fb65087e2cbdd4598`
+**Hash raiz (SHA-256 da lista de arquivos):** `c062ebabce521ff5aac739fdd3a1bce8a26b9108a1d78e2ba34fb3360a4a9baa`
 
 ## Artefatos por pasta
 
@@ -16,14 +16,13 @@ Que os arquivos listados não mudaram desde a emissão: basta recalcular o SHA-2
 |---|---:|---:|
 | checkpoints | 7 | 19,301.5 MB |
 | comparativo_hardware | 3 | 0.2 MB |
-| diagramas_uml | 68 | 5.4 MB |
-| notebook | 1 | 9.3 MB |
-| resultados | 469 | 3,133.3 MB |
+| diagramas_uml | 70 | 5.6 MB |
+| notebook | 1 | 9.5 MB |
+| resultados | 472 | 3,133.6 MB |
 | series_2km | 36 | 1,330.1 MB |
 
 ## Execução do modelo
 
-- **run_id_celula12:** `2a17da25e1d8_n1729_s42_amostragem2024_media8`
 - **checkpoint:** `gptcast8_rmf_2km_G4_RTX6000_Blackwell_95GB_20261116T2123Z_best-00-4.7167.ckpt`
 - **digest_transformer_gpt8:** `2a17da25e1d8`
 
@@ -72,6 +71,7 @@ Que os arquivos listados não mudaram desde a emissão: basta recalcular o SHA-2
 | Célula 13.1 | 594 | `380c5fc32eee9633…` |
 | Célula 13.2 | 259 | `7f72843222d51a61…` |
 | Célula 13.3 | 245 | `77bba557c0289487…` |
+| Célula 13.4 | 287 | `8f82f8c9f42eed4a…` |
 | Célula Extra 1 | 268 | `680ce0aa797a2f77…` |
 | Célula Full UMLs | 397 | `5b475052f170b4ad…` |
 | Célula Extra 2 | 278 | `72f6d988fa0d4309…` |
@@ -81,5 +81,5 @@ Que os arquivos listados não mudaram desde a emissão: basta recalcular o SHA-2
 
 ## Lista completa
 
-Todos os 584 arquivos e hashes estão em `SHA256SUMS_20261119_161518.txt` e `manifesto_proveniencia_NVIDIA_RTX_PRO_6000_Blackwell_Server_Edition_20261119_161518.json`.
-Para conferir: `sha256sum -c SHA256SUMS_20261119_161518.txt` (rodado na pasta que contém resultados/, checkpoints/ e series_2km/).
+Todos os 589 arquivos e hashes estão em `SHA256SUMS_20261119_212129.txt` e `manifesto_proveniencia_NVIDIA_RTX_PRO_6000_Blackwell_Server_Edition_20261119_212129.json`.
+Para conferir: `sha256sum -c SHA256SUMS_20261119_212129.txt` (rodado na pasta que contém resultados/, checkpoints/ e series_2km/).

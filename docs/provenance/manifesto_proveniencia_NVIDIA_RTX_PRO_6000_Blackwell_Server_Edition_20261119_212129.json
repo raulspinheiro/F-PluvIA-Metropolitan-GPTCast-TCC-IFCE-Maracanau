@@ -14,8 +14,8 @@
     "repositorio": "https://github.com/raulspinheiro/F-PluvIA-Metropolitan-GPTCast-TCC-IFCE-Maracanau"
   },
   "emissao": {
-    "utc": "2026-11-19T19:15:18+00:00",
-    "fortaleza": "2026-11-19T16:15:18-03:00",
+    "utc": "2026-11-20T00:21:29+00:00",
+    "fortaleza": "2026-11-19T21:21:29-03:00",
     "ambiente_tag": "G4_RTX6000_Blackwell_95GB",
     "ambiente": "NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB)",
     "python": "3.13.16",
@@ -29,7 +29,7 @@
     "bf16": true,
     "cuda": "13.0",
     "driver": "580.82.07",
-    "uuid": "GPU-283568a7-60b6-8411-90d4-287f71185822"
+    "uuid": "GPU-6e756144-1ebe-3aa4-762d-ebc6cfe4111b"
   },
   "bibliotecas": {
     "gpm-api": "0.4.0",
@@ -45,7 +45,6 @@
     "geopandas": "1.2.0"
   },
   "execucao_do_modelo": {
-    "run_id_celula12": "2a17da25e1d8_n1729_s42_amostragem2024_media8",
     "checkpoint": "gptcast8_rmf_2km_G4_RTX6000_Blackwell_95GB_20261116T2123Z_best-00-4.7167.ckpt",
     "digest_transformer_gpt8": "2a17da25e1d8",
     "registro_treino": {
@@ -204,42 +203,47 @@
       "linhas": 245,
       "sha256_codigo": "77bba557c0289487391284c055055fa46a91634d08bb1c2dff3b6f91847372fa"
     },
-    "Célula Extra 1": {
+    "Célula 13.4": {
       "posicao": 27,
+      "linhas": 287,
+      "sha256_codigo": "8f82f8c9f42eed4a9422abb6552414875fd5d44b3ecd214e71d19906c3fa005c"
+    },
+    "Célula Extra 1": {
+      "posicao": 28,
       "linhas": 268,
       "sha256_codigo": "680ce0aa797a2f7709004e2c14e5108280ebefca119fce52525c2e39fa2f0d2a"
     },
     "Célula Full UMLs": {
-      "posicao": 28,
+      "posicao": 29,
       "linhas": 397,
       "sha256_codigo": "5b475052f170b4ad0efb922d69dbf6edb90738141b3d7dfcdb1a9f62a8bd8e8f"
     },
     "Célula Extra 2": {
-      "posicao": 29,
+      "posicao": 30,
       "linhas": 278,
       "sha256_codigo": "72f6d988fa0d43090ed282971aa5d263b05bec924169655d56d43b7638daf1c4"
     },
     "Célula Base (Pseudo-vista)": {
-      "posicao": 30,
+      "posicao": 31,
       "linhas": 364,
       "sha256_codigo": "3688e9a18d711172401d0e027049be29fcca62542b9206ff890f0daa7755d2ed"
     },
     "Célula (Deploy Automatizado)": {
-      "posicao": 31,
+      "posicao": 32,
       "linhas": 312,
       "sha256_codigo": "773c9ff7609f436bc14ec51fc4e4f956deac133a0dddcfe50866a0dc804191f3"
     },
     "Célula Backup": {
-      "posicao": 32,
+      "posicao": 33,
       "linhas": 189,
       "sha256_codigo": "b3b7c3ceaf2263edd2cf221a61eaa4218dae3ada3415a633f1944b84a6fe3b83"
     }
   },
   "artefatos": {
     "algoritmo": "SHA-256",
-    "total": 584,
-    "bytes_total": 24934967741,
-    "hash_raiz": "ffdffd851b59394aa5e8b6897fd9544416d247cc4d67219fb65087e2cbdd4598",
+    "total": 589,
+    "bytes_total": 24935759166,
+    "hash_raiz": "c062ebabce521ff5aac739fdd3a1bce8a26b9108a1d78e2ba34fb3360a4a9baa",
     "pastas": [
       "resultados",
       "checkpoints",
@@ -300,13 +304,13 @@
       },
       {
         "arquivo": "diagramas_uml/00_fluxo_entre_celulas.png",
-        "bytes": 1065008,
-        "sha256": "2704c93fcb406b54cdbfb2316378db9997e1a1958d65b05bf5db018d5541dabd"
+        "bytes": 1097364,
+        "sha256": "9ce081d7997080056629e72972c90b9eacb8e7eb8f180765647b9e51d1027205"
       },
       {
         "arquivo": "diagramas_uml/00_fluxo_entre_celulas.svg",
-        "bytes": 57224,
-        "sha256": "44019dfe30b4612fe6bc20b581ba8a5a1716676a542bf5c1fa75adb9e19b6082"
+        "bytes": 58824,
+        "sha256": "14c523ec78e675abad035e8ea90a74f4f5f4004bd5477e09bfd1b3ec7e800bc1"
       },
       {
         "arquivo": "diagramas_uml/celulas/01_celula_machine_id.png",
@@ -579,69 +583,79 @@
         "sha256": "9b0beeaeb613c45b3df46c989987f9a9aa4fb89ac2e7056002d501b1f2e66530"
       },
       {
-        "arquivo": "diagramas_uml/celulas/28_celula_extra_1.png",
+        "arquivo": "diagramas_uml/celulas/28_celula_13_4.png",
+        "bytes": 119467,
+        "sha256": "cc4563d50819f7d37a76f804708543738580b1a5ad13c055834cfbbcb511f5f7"
+      },
+      {
+        "arquivo": "diagramas_uml/celulas/28_celula_13_4.svg",
+        "bytes": 7811,
+        "sha256": "5477dc74746a67b7a075b6ea5dda27e0fcf1584a7c18e8833b2bcd3df235d256"
+      },
+      {
+        "arquivo": "diagramas_uml/celulas/29_celula_extra_1.png",
         "bytes": 111960,
         "sha256": "6c492fef6ae54a1f137595bb7d5a5c0f85648fe7b8032b11c4093acb0a0f5ac3"
       },
       {
-        "arquivo": "diagramas_uml/celulas/28_celula_extra_1.svg",
+        "arquivo": "diagramas_uml/celulas/29_celula_extra_1.svg",
         "bytes": 7827,
         "sha256": "aba9925f5e8c4f32f85652bb941c694fe5d12cdb2028c5940e6c9acfda9f2107"
       },
       {
-        "arquivo": "diagramas_uml/celulas/29_celula_full_umls.png",
+        "arquivo": "diagramas_uml/celulas/30_celula_full_umls.png",
         "bytes": 141897,
         "sha256": "232ced21313b151d6acd2738cdb6a093315addbe7c632e68d08e7254a502afea"
       },
       {
-        "arquivo": "diagramas_uml/celulas/29_celula_full_umls.svg",
+        "arquivo": "diagramas_uml/celulas/30_celula_full_umls.svg",
         "bytes": 9923,
         "sha256": "22f477f25487c9554961ebb02d8ae80e14339404b45d864be0344c690bc4c595"
       },
       {
-        "arquivo": "diagramas_uml/celulas/30_celula_extra_2.png",
+        "arquivo": "diagramas_uml/celulas/31_celula_extra_2.png",
         "bytes": 137486,
         "sha256": "909867d270fd54c4c7d3abb7e968e8ca51c0a94a4368ea6223b3696a92286a69"
       },
       {
-        "arquivo": "diagramas_uml/celulas/30_celula_extra_2.svg",
+        "arquivo": "diagramas_uml/celulas/31_celula_extra_2.svg",
         "bytes": 9301,
         "sha256": "8177e755e5cc16736da39e4ce5c58a505a8ed79d26dfd0fcbdcc3d3d57036ded"
       },
       {
-        "arquivo": "diagramas_uml/celulas/31_celula_base_pseudo_vista.png",
+        "arquivo": "diagramas_uml/celulas/32_celula_base_pseudo_vista.png",
         "bytes": 136223,
         "sha256": "710faca3956bb34c69a1a3e124249eeefa6ea2333621f883e9d325e2a27e764f"
       },
       {
-        "arquivo": "diagramas_uml/celulas/31_celula_base_pseudo_vista.svg",
+        "arquivo": "diagramas_uml/celulas/32_celula_base_pseudo_vista.svg",
         "bytes": 11268,
         "sha256": "249dff484860343bc05de9837ca98eecb3aa6ec3fcce161cb08b8919623cb7d3"
       },
       {
-        "arquivo": "diagramas_uml/celulas/32_celula_deploy_automatizado.png",
+        "arquivo": "diagramas_uml/celulas/33_celula_deploy_automatizado.png",
         "bytes": 138948,
         "sha256": "209a224489015081fbae3332d8f8a6953dc86df59391484905aa01431e9486be"
       },
       {
-        "arquivo": "diagramas_uml/celulas/32_celula_deploy_automatizado.svg",
+        "arquivo": "diagramas_uml/celulas/33_celula_deploy_automatizado.svg",
         "bytes": 9210,
         "sha256": "9bb9af7121fd13399b877d8b17284483db1dba97d54a7f2820a5c9a61c1892ba"
       },
       {
-        "arquivo": "diagramas_uml/celulas/33_celula_backup.png",
+        "arquivo": "diagramas_uml/celulas/34_celula_backup.png",
         "bytes": 129144,
         "sha256": "ab0377034b8b8f72e63e9e94b33f622813f3bde4215e4d89e51090c5313e08d4"
       },
       {
-        "arquivo": "diagramas_uml/celulas/33_celula_backup.svg",
+        "arquivo": "diagramas_uml/celulas/34_celula_backup.svg",
         "bytes": 8842,
         "sha256": "e308396ff4730b9e1962a02b7f7cda0489b3b8d5694e493528a92fcd6eaa647e"
       },
       {
         "arquivo": "notebook/Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb",
-        "bytes": 9747588,
-        "sha256": "079d9f5659a61bc9ede4080360e5a4fcb6913981f21df30abd6cefd837ecbb08"
+        "bytes": 10011194,
+        "sha256": "66974cb2080b4062d8c99cdaaf684986cb7040e13f0c7bc6fde6d2ae765a8fc1"
       },
       {
         "arquivo": "resultados/amostragem_val2024_2a17da25e1_9a0d75b9/janela_00015.npz",
@@ -2685,18 +2699,18 @@
       },
       {
         "arquivo": "resultados/log_tempos_etl_sessao_G4_RTX6000_Blackwell_95GB_2019_2025.csv",
-        "bytes": 38020,
-        "sha256": "9f84ff9b3e2bc03c9d087e689a55e645ef0e820d4de3de259bde70eae6a483ed"
+        "bytes": 43418,
+        "sha256": "3feae86bd861215161bc0ddcfac4ad67ea22dc87044c84af89914b0f9e97c69f"
       },
       {
         "arquivo": "resultados/log_tempos_treino_e_inferencia_G4_RTX6000_Blackwell_95GB_2019_2025.csv",
-        "bytes": 1663,
-        "sha256": "87de1735eb3060bed2ea853edfb0afbfd85d68e0139912b391f2b47dad934a5a"
+        "bytes": 1660,
+        "sha256": "ebaa3c2c795768610d76f30ead6583b6ffdb47f40047de362307f60541830c38"
       },
       {
         "arquivo": "resultados/log_tempos_treino_e_inferencia_G4_RTX6000_Blackwell_95GB_2019_2025.json",
-        "bytes": 1941,
-        "sha256": "d42f0c3748863901d806949c3a6cf567962cd0d253b73c61301506d77bbdab22"
+        "bytes": 1938,
+        "sha256": "6c42a66f1ec3d8f50ad87730b5fa622b9e83d6c8a88835b9a226e5b0d6af2066"
       },
       {
         "arquivo": "resultados/mapa_00_comparativo_rmf_2km_G4_RTX6000_Blackwell_95GB.png",
@@ -2744,6 +2758,11 @@
         "sha256": "069319a45052657658ba88c31237007bd50fb6624e2a120c0f034ffb2eb8bddf"
       },
       {
+        "arquivo": "resultados/painel_complexidade_bigO_fpluvia_g_G4_RTX6000_Blackwell_95GB.png",
+        "bytes": 359981,
+        "sha256": "77d2d557aa915df4a19edcb6ff4412144acdda5ad261b5af10686ec412d0b76d"
+      },
+      {
         "arquivo": "resultados/painel_estagio2_leadtime_2km_G4_RTX6000_Blackwell_95GB.png",
         "bytes": 724283,
         "sha256": "f8170567df4b99350785a60da2daf63c45ae476ed46583ac1ae2e8b7e3b49d9e"
@@ -2765,13 +2784,13 @@
       },
       {
         "arquivo": "resultados/rastreabilidade_gptcast_por_celula_G4_RTX6000_Blackwell_95GB.csv",
-        "bytes": 1122,
-        "sha256": "95f357763e245bf7fb9eb8f6909d4c3410234fa44deb5b9c68be6ec4efce4f80"
+        "bytes": 475,
+        "sha256": "358524fa19913286c18938e8093f546bc922476192f3f4ac7cb18edc2653ab7d"
       },
       {
         "arquivo": "resultados/resumo_dataset_e_tempos_G4_RTX6000_Blackwell_95GB_2019_2025.csv",
         "bytes": 1168,
-        "sha256": "9619b55b3bc7a0b89ef19b1ee3c3f65d071c56c4d46ea96f4e327b439d8f4a0e"
+        "sha256": "9d7ae993684c05cd0a31f6ea07a1386c35d2763c6e256c15f068ee42390b8fbf"
       },
       {
         "arquivo": "resultados/resumo_particoes_G4_RTX6000_Blackwell_95GB_2019_2025.csv",
@@ -2829,6 +2848,11 @@
         "sha256": "252eece753f408c37b2f24aa52df457dd8e39898fc4ad04a45052c1be945fb94"
       },
       {
+        "arquivo": "resultados/tabela_complexidade_bigO_fpluvia_g_G4_RTX6000_Blackwell_95GB.csv",
+        "bytes": 895,
+        "sha256": "645bc809348549eb3099b25a861eda7041b60c90b399711774ced8f8a91ea951"
+      },
+      {
         "arquivo": "resultados/tabela_estagio2_dispersao_sorteios_G4_RTX6000_Blackwell_95GB.csv",
         "bytes": 1138,
         "sha256": "06255df400a3779d75a3a61cd763efa96894eee4b05110c33e2b1fcdc91da8d7"
@@ -2852,6 +2876,11 @@
         "arquivo": "resultados/tabela_sal_objetos_2km_G4_RTX6000_Blackwell_95GB.csv",
         "bytes": 2166,
         "sha256": "ea187313b2a4b9fde1de438322062e45868bc1731f5f1bf714408da812413dad"
+      },
+      {
+        "arquivo": "resultados/tabela_verificacao_kvcache_fpluvia_g_G4_RTX6000_Blackwell_95GB.csv",
+        "bytes": 964,
+        "sha256": "f87d9a1d623c65afbe55bf98480ffe10a35d5c886078b45f76bf54d27342e0ec"
       },
       {
         "arquivo": "resultados/tabelas4e5_estagio2_leadtime_2km_G4_RTX6000_Blackwell_95GB_2019_2025.csv",

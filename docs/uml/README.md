@@ -39,12 +39,13 @@ Cada caixa é uma célula (azul: define classes). Uma seta indica que a célula 
 | 25 | Célula 13.1 | 594 | 0 | 17 | 20 | [PNG](celulas/25_celula_13_1.png) · [SVG](celulas/25_celula_13_1.svg) |
 | 26 | Célula 13.2 | 259 | 0 | 4 | 4 | [PNG](celulas/26_celula_13_2.png) · [SVG](celulas/26_celula_13_2.svg) |
 | 27 | Célula 13.3 | 245 | 0 | 4 | 6 | [PNG](celulas/27_celula_13_3.png) · [SVG](celulas/27_celula_13_3.svg) |
-| 28 | Célula Extra 1 | 268 | 0 | 6 | 14 | [PNG](celulas/28_celula_extra_1.png) · [SVG](celulas/28_celula_extra_1.svg) |
-| 29 | Célula Full UMLs | 397 | 0 | 13 | 14 | [PNG](celulas/29_celula_full_umls.png) · [SVG](celulas/29_celula_full_umls.svg) |
-| 30 | Célula Extra 2 | 278 | 0 | 5 | 13 | [PNG](celulas/30_celula_extra_2.png) · [SVG](celulas/30_celula_extra_2.svg) |
-| 31 | Célula Base (Pseudo-vista) | 364 | 1 | 5 | 14 | [PNG](celulas/31_celula_base_pseudo_vista.png) · [SVG](celulas/31_celula_base_pseudo_vista.svg) |
-| 32 | Célula (Deploy Automatizado) | 312 | 0 | 4 | 12 | [PNG](celulas/32_celula_deploy_automatizado.png) · [SVG](celulas/32_celula_deploy_automatizado.svg) |
-| 33 | Célula Backup | 189 | 0 | 1 | 12 | [PNG](celulas/33_celula_backup.png) · [SVG](celulas/33_celula_backup.svg) |
+| 28 | Célula 13.4 | 287 | 0 | 8 | 9 | [PNG](celulas/28_celula_13_4.png) · [SVG](celulas/28_celula_13_4.svg) |
+| 29 | Célula Extra 1 | 268 | 0 | 6 | 14 | [PNG](celulas/29_celula_extra_1.png) · [SVG](celulas/29_celula_extra_1.svg) |
+| 30 | Célula Full UMLs | 397 | 0 | 13 | 14 | [PNG](celulas/30_celula_full_umls.png) · [SVG](celulas/30_celula_full_umls.svg) |
+| 31 | Célula Extra 2 | 278 | 0 | 5 | 13 | [PNG](celulas/31_celula_extra_2.png) · [SVG](celulas/31_celula_extra_2.svg) |
+| 32 | Célula Base (Pseudo-vista) | 364 | 1 | 5 | 14 | [PNG](celulas/32_celula_base_pseudo_vista.png) · [SVG](celulas/32_celula_base_pseudo_vista.svg) |
+| 33 | Célula (Deploy Automatizado) | 312 | 0 | 4 | 12 | [PNG](celulas/33_celula_deploy_automatizado.png) · [SVG](celulas/33_celula_deploy_automatizado.svg) |
+| 34 | Célula Backup | 189 | 0 | 1 | 12 | [PNG](celulas/34_celula_backup.png) · [SVG](celulas/34_celula_backup.svg) |
 
 ## Como ler
 

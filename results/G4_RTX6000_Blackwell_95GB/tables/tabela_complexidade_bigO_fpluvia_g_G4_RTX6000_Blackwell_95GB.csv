@@ -1,0 +1,7 @@
+Ambiente_Execucao,Passos (S),Horizonte [min],Instâncias (m),Tempo médio recálculo [s],Tempo médio KV cache [s],Speedup (recálculo / KV),Posições recálculo,Posições KV cache,TFLOP/s recálculo,TFLOP/s KV cache,Previsões idênticas (bf16)
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),1,30,10,0.43,0.3629,1.18,30752,512,43.6,0.9,4/10
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),3,90,10,1.2679,1.0755,1.18,92256,1536,44.4,0.9,1/10
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),5,150,10,2.1084,1.7894,1.18,153760,2560,44.5,0.9,1/10
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),7,210,10,2.9344,2.5137,1.17,215264,3584,44.7,0.9,0/10
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),9,270,10,3.7715,3.2379,1.16,276768,4608,44.8,0.9,0/10
+NVIDIA RTX PRO 6000 Blackwell Server Edition (95.0 GB),12,360,10,4.9843,4.314,1.16,369024,6144,45.2,0.9,0/10

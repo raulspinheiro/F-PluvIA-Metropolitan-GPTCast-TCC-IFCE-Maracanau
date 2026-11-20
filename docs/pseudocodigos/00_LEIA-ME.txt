@@ -1,6 +1,6 @@
 Pseudo-códigos do notebook F-PluvIA Metropolitan
-Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 19/11/2026 19:15)
-Gerado em: 19/11/2026 19:16 | Ambiente: G4_RTX6000_Blackwell_95GB
+Notebook: Model_Annual_Full_Training_Series_TCC2_-_2026_2_-_RAUL_SANTIAGO_PINHEIRO.ipynb (salvo em 20/11/2026 00:21)
+Gerado em: 20/11/2026 00:22 | Ambiente: G4_RTX6000_Blackwell_95GB
 Tradução automática por regras (árvore sintática do Python): é fiel à estrutura do código, não um resumo.
 
 // Convenções: ← atribuição | FUNÇÃO/CLASSE/SE/PARA CADA/ENQUANTO/TENTAR … FIM | EXIBIR = mostra na saída
@@ -33,9 +33,10 @@ Tradução automática por regras (árvore sintática do Python): é fiel à est
 25. Célula 13.1 -> 25_celula_13_1.txt
 26. Célula 13.2 -> 26_celula_13_2.txt
 27. Célula 13.3 -> 27_celula_13_3.txt
-28. Célula Extra 1 -> 28_celula_extra_1.txt
-29. Célula Full UMLs -> 29_celula_full_umls.txt
-30. Célula Extra 2 -> 30_celula_extra_2.txt
-31. Célula Base (Pseudo-vista) -> 31_celula_base_pseudo_vista.txt
-32. Célula (Deploy Automatizado) -> 32_celula_deploy_automatizado.txt
-33. Célula Backup -> 33_celula_backup.txt
+28. Célula 13.4 -> 28_celula_13_4.txt
+29. Célula Extra 1 -> 29_celula_extra_1.txt
+30. Célula Full UMLs -> 30_celula_full_umls.txt
+31. Célula Extra 2 -> 31_celula_extra_2.txt
+32. Célula Base (Pseudo-vista) -> 32_celula_base_pseudo_vista.txt
+33. Célula (Deploy Automatizado) -> 33_celula_deploy_automatizado.txt
+34. Célula Backup -> 34_celula_backup.txt
